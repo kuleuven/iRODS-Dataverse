@@ -1,0 +1,37 @@
+{
+    "datasetVersion": {
+        "metadataBlocks": {
+            "citation": {
+                "fields": [
+                    {
+                        "value": "Demo for 19 March 2024",
+                        "typeClass": "primitive",
+                        "multiple": false,
+                        "typeName": "title"
+                    },
+                    {
+                        "value": [
+                            {
+                                "authorName": {
+                                    "value": "Kafetzaki, Danai",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "authorName"
+                                },
+                                "authorAffiliation": {
+                                    "value": "KU Leuven",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "authorAffiliation"
+                                }
+                            }
+                        ],
+                        "typeClass": "compound",
+                        "multiple": true,
+                        "typeName": "author"
+                    }
+                ]
+            }
+        }
+    }
+}
