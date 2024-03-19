@@ -13,26 +13,25 @@ env_file = os.getenv(
 session = iRODSSession(irods_env_file=env_file)
 
 # --- Files from iRODS zone path + name ---- #
-dirSrc = "/set/home/datateam_set/iRODS2DV/"
+srcPath = "/set/home/datateam_set/iRODS2DV/"
 srcObj = "iRODSfile.txt"
 # -------> Phase-2: Include iRODS AVU e.g. 'send_to_DVdemo', query based on the metadata and get the required info
 
 # ---- Get Data Object from iRODS ---- #
-publishedObj = session.data_objects.get(f"{dirSrc}{srcObj}")
+publishedObj = session.data_objects.get(f"{srcPath}{srcObj}")
 print(publishedObj)
 
 # ---- Get Data Object Metadata from iRODS ---- #
-lMDpid = []
-qMDpid = (
-    session.query(DataObjectMeta.name, DataObjectMeta.name, DataObjectMeta.value)
+lpid = []
+qpid = (
+    session.query(DataObjectMeta.value)
     .filter(Criterion("=", DataObject.name, srcObj))
     .filter(Criterion("=", DataObjectMeta.name, "dvdspid"))
 )
-for item in qMDpid:
-    lMDpid.append(f"{item[DataObjectMeta.value]}")
-print(lMDpid)
+lpid = [item[DataObjectMeta.value] for item in qpid]
+print(lpid)
 
-dsPID_complete = str(lMDpid[0])
+dsPID_complete = str(lpid[0])
 print(dsPID_complete)
 
 BASE_URL = "https://demo.dataverse.org"  # URL for the specific Dataverse installation
