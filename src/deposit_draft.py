@@ -1,9 +1,10 @@
 # import modules
+import json
 import os, os.path
 from irods.session import iRODSSession
+from irods.meta import iRODSMeta, AVUOperation
 from pyDataverse.api import NativeApi
 from pyDataverse.models import Dataset, Datafile
-import json
 from pyDataverse.utils import read_file
 
 # --- Files from iRODS zone path + name ---- #
@@ -20,7 +21,7 @@ env_file = os.getenv(
 session = iRODSSession(irods_env_file=env_file)
 
 # ---- Get User Metadata from iRODS ---- #
-print(f"User: {session.username} is authenticated to iRODS")  # [+ email ?]
+print(f"User: {session.username} is authenticated to iRODS")
 
 # ---- Get Data Object from iRODS ---- #
 if os.path.exists(f"{dirTrg}{srcObj}"):
@@ -35,9 +36,7 @@ print(
 
 # ---- Authenticate to Dataverse ---- #
 BASE_URL = "https://demo.dataverse.org"  # URL for the specific Dataverse installation
-API_TOKEN = (
-    "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"  # Your API-Token for DV demo installation
-)
+API_TOKEN = "XXX"  # Your API-Token for DV demo installation
 
 # ---- Connect to Dataverse API ---- #
 api = NativeApi(BASE_URL, API_TOKEN)
@@ -91,14 +90,20 @@ with open(dsMinMD, "r") as inputfile:
 print(f"The following metadata will be attached:\n {dsMD}")
 ds.from_json(read_file(dsMinMD))
 
+# ---- Get author metadata from enriched json file ---- #
+dsAuthorName = dsMD["datasetVersion"]["metadataBlocks"]["citation"]["fields"][2][
+    "value"
+][0]["datasetContactName"]["value"]
+dsAuthorEmail = dsMD["datasetVersion"]["metadataBlocks"]["citation"]["fields"][2][
+    "value"
+][0]["datasetContactEmail"]["value"]
+
 # ---- Validate whether a Dataset with this Metadata can be created ---- #
 print(f"Valid JSON data structure: {ds.validate_json()}")
 
 # User input to continue demo
 print("Continue...")
 input()
-
-# -------> Phase-2: Update dataset metadata (Optional)
 
 # ---- Create draft dataset in Dataverse installation ---- #
 ds.from_json(read_file(dsMinMD))
@@ -135,16 +140,45 @@ print(f"This is the response from the datafile upload:\n {resp.json()}")
 # Keep additional metadata (see comment below)?
 # {'status': 'OK', 'data': {'files': [{'description': '', 'label': 'file1.txt', 'restricted': False, 'version': 1, 'datasetVersionId': 249231, 'dataFile': {'id': 2134919, 'persistentId': '', 'filename': 'file1.txt', 'contentType': 'text/plain', 'friendlyType': 'Plain Text', 'filesize': 90, 'description': '', 'storageIdentifier': 's3://demo-dataverse-org:18e4cadaf8d-8dd8f933923e', 'rootDataFileId': -1, 'md5': 'db32fde37c4b9a22f8963d3f84a61e77', 'checksum': {'type': 'MD5', 'value': 'db32fde37c4b9a22f8963d3f84a61e77'}, 'tabularData': False, 'creationDate': '2024-03-17', 'fileAccessRequest': False}}]}}
 
-# ---- Save draft publication metadata in iRODS ---- #
-depositedObj = session.data_objects.get(f"{dirSrc}{srcObj}")
-print(depositedObj)
+# ---- Save publication metadata in iRODS ---- #
+depositedObj = session.data_objects.get(f"{dirSrc}{srcObj}")  # get data object
+dsMDlist = [
+    "dsAuthorName",
+    "dsAuthorEmail",
+    "dvdsid",
+    "dvdspid",
+    "dvdspurl",
+    "dvdsTimestampDraft",
+]  # specify the metadata keys that will be attributed
 
-# ---- Save publication Metadata in iRODS ---- #
-depositedObj.metadata.add("dvdsid", f"{dsID}")
-depositedObj.metadata.add("dvdspid", f"{dsPID}")
-depositedObj.metadata.add("dvdspurl", f"{dsPURL}")
-depositedObj.metadata.add("dvdsTimestampDraft", "2024-03-18")
+# delete the metadata based on the specified keys, if these already exist ; alternative: repetitive field in schema.
+for item in dsMDlist:
+    try:
+        delMD = depositedObj.metadata.get_one(f"{item}")
+    except:
+        continue
+    else:
+        depositedObj.metadata.apply_atomic_operations(
+            AVUOperation(
+                operation="remove", avu=iRODSMeta(f"{delMD.name}", f"{delMD.value}")
+            )
+        )
+        print(f"{delMD.name} will be updated")
 
+# attach latest metadata
+depositedObj.metadata.apply_atomic_operations(
+    AVUOperation(operation="add", avu=iRODSMeta("dsAuthorName", f"{dsAuthorName}")),
+    AVUOperation(operation="add", avu=iRODSMeta("dsAuthorEmail", f"{dsAuthorEmail}")),
+    AVUOperation(operation="add", avu=iRODSMeta("dvdsid", f"{dsID}")),
+    AVUOperation(operation="add", avu=iRODSMeta("dvdspid", f"{dsPID}")),
+    AVUOperation(operation="add", avu=iRODSMeta("dvdspurl", f"{dsPURL}")),
+    AVUOperation(operation="add", avu=iRODSMeta("dvdsTimestampDraft", "2024-04-02")),
+)  # attach metadata
+print("Dataverse AVUs are attached in iRODS object")
+
+# ---- Empty data folder ---- #
+if os.path.exists(f"{dirTrg}{srcObj}"):
+    os.remove(f"{dirTrg}{srcObj}")
 
 # ---- Clean up iRODS session ---- #
 session.cleanup()
