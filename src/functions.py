@@ -5,12 +5,16 @@ from irods.meta import iRODSMeta, AVUOperation
 from irods.column import Criterion
 from irods.models import Collection, DataObject, DataObjectMeta
 from pyDataverse.api import NativeApi
-from pyDataverse.models import Dataset
+from pyDataverse.models import (
+    Dataset,
+    Datafile,
+)  # import also the DVObject to change class attributes?
 from pyDataverse.utils import read_file
+import irods.keywords as kw
 
 
 def authenticate_iRODS(env_path):
-    """...
+    """Authenticate to iRODS, in the zone specified in the environment file.
 
     Parameters
     ----------
@@ -19,7 +23,7 @@ def authenticate_iRODS(env_path):
 
     Returns
     -------
-    session
+    session: ...
       iRODS session
     """
     env_file = os.getenv("iRODS_ENVIRONMENT_FILE", os.path.expanduser(env_path))
@@ -28,7 +32,7 @@ def authenticate_iRODS(env_path):
 
 
 def authenticate_DV(url, tk):
-    """Check that the use can be authenticated to Dataverse
+    """Check that the use can be authenticated to Dataverse.
     Parameters
     ----------
     url: str
@@ -38,8 +42,9 @@ def authenticate_DV(url, tk):
 
     Returns
     -------
-    status : str
+    status: str
         The HTTP status for accessing the Dataverse installation.
+    api:
     """
     api = NativeApi(url, tk)
     resp = api.get_info_version()
@@ -49,7 +54,7 @@ def authenticate_DV(url, tk):
 
 
 def query_data(atr, val, session):
-    """...
+    """iRODS query to get the data objects destined for publication based on metadata.
 
     Parameters
     ----------
@@ -74,24 +79,23 @@ def query_data(atr, val, session):
     for item in qobj:
         lobj.append(f"{item[Collection.name]}/{item[DataObject.name]}")
     lobj = list(set(lobj))
-    return lobj  # qobj  # maybe remove qobj
+    return lobj  # qobj
 
 
-def query_dv(atr, obj, session):
-    """...
+def split_obj(obj):
+    """Split input in path and filename.
 
     Parameters
     ----------
-    atr: str
-      the metadata attribute describing the Dataverse installation
     obj: list
       iRODS path and name of object(s) for publication
-    session: iRODS session
 
     Returns
     -------
-    lMD
-      list of metadata values for the given attribute
+    objPath: list
+      iRODS path of each data object for publication
+    objName: list
+      Filename of each data object for publication
     """
 
     objPath = []
@@ -101,6 +105,28 @@ def query_dv(atr, obj, session):
         obji = res[len(res) - 1]
         objPath.append(item[: -(len(obji) + 1)])
         objName.append(obji)
+
+    return objPath, objName
+
+
+def query_dv(atr, objPath, objName, session):
+    """iRODS query to get the Dataverse installation the data are destined for publication.
+
+    Parameters
+    ----------
+    atr: str
+      the metadata attribute describing the Dataverse installation
+    objPath: list
+      iRODS path of each data object for publication
+    objName: list
+      Filename of each data object for publication
+    session: iRODS session
+
+    Returns
+    -------
+    lMD
+      list of metadata values for the given attribute
+    """
 
     lMD = []
     for item in range(len(objPath)):
@@ -122,7 +148,7 @@ def query_dv(atr, obj, session):
 
 
 def get_template(inp_dv):
-    """Directs user to metadata template.
+    """Direct user to metadata template.
 
     Parameters
     ----------
@@ -138,9 +164,9 @@ def get_template(inp_dv):
     """
 
     if inp_dv == "RDR":
-        mdPath = "doc/metadata/md_RDR.json"
+        mdPath = "doc/metadata/template_RDR.json"
     elif inp_dv == "Demo":
-        mdPath = "doc/metadata/md_Demo.json"
+        mdPath = "doc/metadata/template_Demo.json"
 
     msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}, save and hit enter to continue."
 
@@ -148,7 +174,7 @@ def get_template(inp_dv):
 
 
 def setup(inp_dv, inp_tk):
-    """...
+    """Establish a session for the selected Dataverse installation.
 
      Parameters
      ----------
@@ -202,7 +228,7 @@ def initiate_ds(inp_dv):
 
 
 def validate_md(ds, md):
-    """Validate that the metadata template is up-to-date
+    """Validate that the metadata template is up-to-date [NOTE: In its current state this function is not needed]
     Parameters
     ----------
     ds : Dataverse Dataset
@@ -213,7 +239,7 @@ def validate_md(ds, md):
     Returns
     -------
     resp : bool
-        It is `True` if the metadata template fits the expectations and `False` if it does not.
+        It is `True` if the metadata template fits the Dataverse expectations and `False` if it does not.
     """
 
     ds.from_json(read_file(md))
@@ -223,7 +249,7 @@ def validate_md(ds, md):
 
 
 def deposit_ds(api, inp_dv, ds):
-    """
+    """Create a Dataverse dataset with user specified metadata
     Parameters
     ----------
     api : list
@@ -250,20 +276,89 @@ def deposit_ds(api, inp_dv, ds):
     resp = api.create_dataset_private_url(dsPID)
     dsPURL = resp.json()["data"]["link"]
 
-    # upload_file()
-
     return dsStatus, dsPID, dsID, dsPURL
 
 
-# def upload_file():
-#     """
-#     Parameters
-#     ----------
+def save_df(objPath, objName, trg_path, session):
+    """Save locally the iRODS data objects destined for publication
+    Parameters
+    ----------
+    objPath: list
+      iRODS path of each data object for publication
+    objName: list
+      Filename of each data object for publication
+    trg_path: str
+      Local directory to save data
+    session: iRODS session
+    """
+    opts = {kw.FORCE_FLAG_KW: True}
 
-#     Returns
-#     -------
+    for item in range(len(objName)):
+        # chksum(f"{objPath[item]}/{objName[item]}", f"{trg_path}/{objName[item]}")
+        session.data_objects.get(
+            f"{objPath[item]}/{objName[item]}",
+            f"{trg_path}/{objName[item]}",
+            **opts,
+        )
 
-#     """
+
+def deposit_df(api, dsPID, inp_df, inp_path):
+    """Upload the list of data files in Dataverse Dataset
+    Parameters
+    ----------
+    api : list
+        Status and pyDataverse object
+    dsPID : str
+        Dataset Persistent Identifier
+    inp_df : list
+        The name of the files for publication
+    inp_path: str
+        The path to the local directory to save the data files
+
+    Returns
+    -------
+    dfResp: list
+        API response from each data file upload
+    dfPID: list
+        String in JSON format with persistent ID  and filename.
+    """
+
+    dfResp = []
+    dfPID = []
+    for inp_i in inp_df:
+        df = Datafile()
+        df.set({"pid": dsPID, "filename": inp_i})
+        df.get()
+        resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
+
+        dfResp.append(resp.json())
+        dfPID.append(df.json())
+
+    return dfResp, dfPID
+
+
+def extract_atr(JSONstr, atr):
+    """Extract attribute value from the datafile JSON response, for a given list of datafiles
+    Parameters
+    ----------
+    JSONstr : str
+        A string including a JSON structure for the persistent identified and the filename
+    atr : str
+        The attribute to extract from teh dictionary
+
+    Returns
+    -------
+    lst_val: list
+        Metadata value as a string item for each file uploaded in Dataverse
+    """
+
+    lst_val = []
+    # TO DO: apply for JSONstr in list_of_JSONstr
+    json_obj = json.loads(JSONstr)
+    val = json_obj[atr]
+    lst_val.append(val)
+
+    return lst_val
 
 
 # Save metadata:

@@ -1,0 +1,108 @@
+{
+    "datasetVersion": {
+        "metadataBlocks": {
+            "citation": {
+                "fields": [
+                    {
+                        "value": "...Title...",
+                        "typeClass": "primitive",
+                        "multiple": false,
+                        "typeName": "title"
+                    },
+                    {
+                        "value": [
+                            {
+                                "authorName": {
+                                    "value": "...LastName..., ...FirstName...",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "authorName"
+                                },
+                                "authorAffiliation": {
+                                    "value": "...Affiliation...",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "authorAffiliation"
+                                }
+                            }
+                        ],
+                        "typeClass": "compound",
+                        "multiple": false,
+                        "typeName": "author"
+                    },
+                    {
+                        "value": [
+                            {
+                                "datasetContactEmail": {
+                                    "value": "...Email...",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "datasetContactEmail"
+                                },
+                                "datasetContactName": {
+                                    "value": "...LastName..., ...FirstName...",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "datasetContactName"
+                                }
+                            }
+                        ],
+                        "typeClass": "compound",
+                        "multiple": false,
+                        "typeName": "datasetContact"
+                    },
+                    {
+                        "value": [
+                            {
+                                "dsDescriptionValue": {
+                                    "value": "...Description...",
+                                    "typeClass": "primitive",
+                                    "multiple": false,
+                                    "typeName": "dsDescriptionValue"
+                                }
+                            }
+                        ],
+                        "typeClass": "compound",
+                        "multiple": true,
+                        "typeName": "dsDescription"
+                    },
+                    {
+                        "value": [
+                            {
+                                "keywordValue": {
+                                    "value": "...Keyword...",
+                                    "typeName": "keywordValue",
+                                    "multiple": false,
+                                    "typeClass": "primitive"
+                                }
+                            }
+                        ],
+                        "typeClass": "compound",
+                        "multiple": true,
+                        "typeName": "keyword"
+                    },
+                    {
+                        "value": "...filetypes...",
+                        "typeClass": "primitive",
+                        "multiple": false,
+                        "typeName": "technicalFormat"
+                    },
+                    {
+                        "value": {
+                            "accessRights": {
+                                "typeName": "accessRights",
+                                "multiple": false,
+                                "typeClass": "controlledVocabulary",
+                                "value": "...open/restricted/embargoed/closed.."
+                            }
+                        },
+                        "typeClass": "compound",
+                        "multiple": false,
+                        "typeName": "access"
+                    }
+                ],
+                "displayName": "Citation Metadata"
+            }
+        }
+    }
+}
