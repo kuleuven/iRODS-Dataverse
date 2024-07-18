@@ -23,8 +23,7 @@ def authenticate_iRODS(env_path):
 
     Returns
     -------
-    session: ...
-      iRODS session
+    session: iRODS session
     """
     env_file = os.getenv("iRODS_ENVIRONMENT_FILE", os.path.expanduser(env_path))
     session = iRODSSession(irods_env_file=env_file)
@@ -44,8 +43,10 @@ def authenticate_DV(url, tk):
     -------
     status: str
         The HTTP status for accessing the Dataverse installation.
-    api:
+    api: list
+        Status and pyDataverse object
     """
+
     api = NativeApi(url, tk)
     resp = api.get_info_version()
     status = resp.status_code
@@ -66,7 +67,7 @@ def query_data(atr, val, session):
 
     Returns
     -------
-    lobj
+    lobj: list
       list of the data object(s) including iRODS path
     """
 
@@ -124,7 +125,7 @@ def query_dv(atr, objPath, objName, session):
 
     Returns
     -------
-    lMD
+    lMD: list
       list of metadata values for the given attribute
     """
 
@@ -331,6 +332,8 @@ def deposit_df(api, dsPID, inp_df, inp_path):
         df.get()
         resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
 
+        print(f"{inp_i} is uploaded")
+
         dfResp.append(resp.json())
         dfPID.append(df.json())
 
@@ -361,9 +364,19 @@ def extract_atr(JSONstr, atr):
     return lst_val
 
 
-# Save metadata:
 def save_md(item, atr, val, session):
-    # instead of obj, use path and name that is changes to iRODS object
+    """Add metadata in iRODS
+    Parameters
+    ----------
+    item: str
+        Path and name of the data object in iRODS
+    atr: str
+        Name of metadata attribute
+    val: str
+        Value of metadata attribute
+    session: iRODS session
+    """
+
     obj = session.data_objects.get(f"{item}")
     obj.metadata.apply_atomic_operations(
         AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))

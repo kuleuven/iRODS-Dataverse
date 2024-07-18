@@ -12,7 +12,7 @@ infocolor = "\033[36m"  # color for messages related to the process, other than 
 # A: dv.installation  V: Demo
 
 # Provide the iRODS environment file to authenticate in a specific zone
-print("Authenticate to iRODS, zone SET")
+print("Authenticate to iRODS zone")
 session = functions.authenticate_iRODS("~/.irods/irods_environment.json")
 print(f"{infocolor}You are now authenticated to iRODS{esccolor}")
 
@@ -72,7 +72,6 @@ for i in range(len(objName)):
 print(
     f"{infocolor}Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.{esccolor}"
 )
-
 
 # Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input
 print(
