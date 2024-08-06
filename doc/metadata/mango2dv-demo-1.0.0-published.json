@@ -14,7 +14,7 @@
     "author": {
       "title": "Author",
       "properties": {
-        "name": {
+        "authorName": {
           "title": "Name",
           "type": "text",
           "placeholder": "Last-name, First-name",
@@ -22,7 +22,7 @@
           "required": true,
           "help": "The name of the author, such as the person's name or the name of the organization"
         },
-        "affiliation": {
+        "authorAffiliation": {
           "title": "Affiliation",
           "type": "text",
           "placeholder": "",
@@ -35,10 +35,10 @@
       "repeatable": true,
       "help": "The entity, e.g. person or organization, that created the Dataset"
     },
-    "point_of_contact": {
+    "datasetContact": {
       "title": "Point of Contact",
       "properties": {
-        "name": {
+        "datasetContactName": {
           "title": "Name",
           "type": "text",
           "placeholder": "Last-name, First-name",
@@ -46,7 +46,7 @@
           "required": true,
           "help": "The name of the author, such as the person's name or the name of the organization"
         },
-        "email": {
+        "datasetContactEmail": {
           "title": "E-mail",
           "type": "text",
           "placeholder": "",
@@ -59,7 +59,7 @@
       "repeatable": true,
       "help": "The entity, e.g. person or organization, that users of the Dataset can contact with questions"
     },
-    "description": {
+    "dsDescription": {
       "title": "Description",
       "type": "textarea",
       "placeholder": "",
