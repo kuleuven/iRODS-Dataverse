@@ -32,6 +32,7 @@
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": true,
       "help": "The entity, e.g. person or organization, that created the Dataset"
     },
@@ -56,15 +57,24 @@
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": true,
       "help": "The entity, e.g. person or organization, that users of the Dataset can contact with questions"
     },
     "dsDescription": {
       "title": "Description",
-      "type": "textarea",
-      "placeholder": "",
-      "pattern": "",
-      "required": true,
+      "properties": {
+        "dsDescriptionValue": {
+          "title": "Text",
+          "type": "textarea",
+          "placeholder": "",
+          "pattern": "",
+          "required": true,
+          "help": "A summary describing the purpose, nature, and scope of the Dataset"
+        }
+      },
+      "type": "object",
+      "required": false,
       "repeatable": true,
       "help": "A summary describing the purpose, nature, and scope of the Dataset"
     },
@@ -93,8 +103,8 @@
       "help": "The area of study relevant to the Dataset"
     }
   },
-  "edited_by": "u0112360",
-  "realm": "datateam_set",
+  "edited_by": "demonstrator",
+  "realm": "demo",
   "title": "ManGO Dataset to Dataverse Demo",
   "parent": ""
 }
