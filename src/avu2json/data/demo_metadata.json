@@ -1,0 +1,24 @@
+{
+    "author": [
+        {
+            "authorAffiliation": "KU Leuven",
+            "authorName": "Kafetzaki, Danai"
+        }
+    ],
+    "datasetContact": [
+        {
+            "datasetContactEmail": "danai.kafetzaki@kuleuven.be",
+            "datasetContactName": "Kafetzaki, Danai"
+        }
+    ],
+    "dsDescription": [
+        {
+            "dsDescriptionValue": "This is a minimal end-to-end implementation for iRODS-Dataverse integration, a KU Leuven and SURF collaboration"
+        }
+    ],
+    "subject": [
+        "Demo Only"
+    ],
+    "technicalFormat": "json",
+    "title": "Minimum Viable Workflow - 16 May 2024"
+}

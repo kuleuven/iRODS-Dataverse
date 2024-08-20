@@ -1,0 +1,7 @@
+defusedxml==0.7.1
+mango-mdschema==1.0.2
+prettytable==3.11.0
+python-irodsclient==2.1.0
+six==1.16.0
+validators==0.22.0
+wcwidth==0.2.13
