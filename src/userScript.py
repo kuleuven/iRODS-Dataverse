@@ -1,22 +1,31 @@
 import functions
 import maskpass
 import datetime
+from os.path import expanduser
 
 # define custom colors (Octal ANSI sequences for colors ; https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#8-16-colors) => put in class?
 esccolor = "\033[39m"  # color for the instructions, also the default color.
 actioncolor = "\033[33m"  # color for information on the actions in iRODS.
 infocolor = "\033[36m"  # color for messages related to the process, other than actions in iRODS.
+warningcolor = "\x1b[1;31m"
 
-# # To drive the process based on metadata, go to your selected zone and add the following metadata to at least one data object:
+# # To drive the process based on metadata, go to your selected zone and
+#  add the following metadata to at least one data object:
 # A: dv.publication   V: initiated
 # A: dv.installation  V: Demo
 
 # Provide the iRODS environment file to authenticate in a specific zone
 print("Authenticate to iRODS zone")
-session = functions.authenticate_iRODS("~/.irods/irods_environment.json")
-print(f"{infocolor}You are now authenticated to iRODS{esccolor}")
+home_dir = expanduser("~")
+session = functions.authenticate_iRODS(f"{home_dir}/.irods/irods_environment.json") #only worked after providing the full path
+if session: 
+    print(f"{infocolor}You are now authenticated to iRODS{esccolor}")
+else: 
+    print(f"{warningcolor}You are not authenticated to iRODS{esccolor}")
+    raise SystemExit  #do it with try catch?
 
-# Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path
+# Select Data: if there is no metadata specifying the
+#  object that needs to be published, ask user to provide the path
 print(
     "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
 )
@@ -32,7 +41,8 @@ if len(ldt) == 0:
     add = True
     while add:
         print(
-            "Provide a string with the full iRODS path and name of the data object to be published in one of the configured Dataverse installations"
+            "Provide a string with the full iRODS path and name of the data object to be published in one of the configured Dataverse installations" 
+            # example?
         )
         inp_i = input()
         inp_dt.append(inp_i)

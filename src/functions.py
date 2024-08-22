@@ -25,9 +25,14 @@ def authenticate_iRODS(env_path):
     -------
     session: iRODS session
     """
-    env_file = os.getenv("iRODS_ENVIRONMENT_FILE", os.path.expanduser(env_path))
-    session = iRODSSession(irods_env_file=env_file)
-    return session
+    if os.path.exists(env_path):
+        env_file = os.getenv("iRODS_ENVIRONMENT_FILE", env_path)
+        session = iRODSSession(irods_env_file=env_file)
+        return session
+    else:
+        print("the environment file does not exist")
+        return None
+        
 
 
 def authenticate_DV(url, tk):
