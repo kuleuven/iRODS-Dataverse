@@ -105,8 +105,7 @@ resp = functions.setup(
     inp_dv, token
 )  # this function also validates that the selected Dataverse installations is configured.
 
-# Initiate a dataset in the selected Dataverse installation
-ds = functions.initiate_ds(inp_dv)
+
 input()  # Pause until the user provides the metadata >>>>> TO DO: CHANGE
 # >>>>> TO DO: provide a path for the metadata ; use data object metadata: A: dv.mdpath V: /set/home/datateam_set/iRODS2DV/md_ds.json
 # >>>>> TO DO: modify the following while loop
@@ -117,17 +116,17 @@ input()  # Pause until the user provides the metadata >>>>> TO DO: CHANGE
 #     md
 # )  # this is the local path to the json metadata template (doc/metadata/md_Demo.json) - put the md in iRODS
 md = "doc/metadata/mdDataset_Demo.json"
-vmd = functions.validate_md(ds, md)
+vmd = functions.validate_md(resp[2], md)
 while not (vmd):
     print(
         f"The metadata are not validated, modify <{md}>, save and hit enter to continue."
     )
     input()
-    vmd = functions.validate_md(ds, md)
+    vmd = functions.validate_md(resp[2], md)
 print("The metadata are validated, the process continues.")
 
 # Deposit draft in selected Dataverse installation
-ds_md = functions.deposit_ds(resp[1][1], inp_dv, ds)
+ds_md = functions.deposit_ds(resp[1][1], inp_dv, resp[2])
 print(f"{infocolor}The Dataset publication metadata are: {ds_md}{esccolor}")
 
 
