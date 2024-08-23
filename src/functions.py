@@ -10,6 +10,7 @@ from pyDataverse.models import (
     Datafile,
 )  # import also the DVObject to change class attributes?
 from pyDataverse.utils import read_file
+from configparser import ConfigParser
 import irods.keywords as kw
 
 
@@ -148,39 +149,39 @@ def query_dv(atr, objPath, objName, session):
     return lMD
 
 
-def get_template(inp_dv):
-    """Direct user to metadata template.
+def instantiate_selected_class(installationName, config):
+    """Instantiate Dataset class based on the selected Dataverse installation
 
     Parameters
     ----------
-    inp_dv: str
-        The selected Dataverse installation
+     installationName: str
+        The Dataverse installation specified by the user
+    config: ini
+        The file to initialize the configured Dataset classes
 
     Returns
     -------
-    msg : str
-        A message including the path to the JSON file with the required metadata template for the selected Dataverse installation
-    mdPath : str
-        The path to the metadata template for the selected Dataverse installation
+     selectedClass: class
+        The class to instantiate
     """
 
-    if inp_dv == "RDR":
-        mdPath = "doc/metadata/template_RDR.json"
-    elif inp_dv == "Demo":
-        mdPath = "doc/metadata/template_Demo.json"
+    config_section = config[installationName]
+    modulename, classname = config_section["className"].split(".", 2)
+    module = __import__(modulename)
+    selectedClass = getattr(module, classname)
 
-    msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}, save and hit enter to continue."
-
-    return print(msg), mdPath
+    return selectedClass()
 
 
 def setup(inp_dv, inp_tk):
-    """Establish a session for the selected Dataverse installation.
+    """Establish a session for the selected Dataverse installation and create an empty dataset.
 
      Parameters
      ----------
      inp_dv: str
         The target Dataverse installation
+     inp_tk: str
+        The user token
 
     Returns
     -------
@@ -188,44 +189,39 @@ def setup(inp_dv, inp_tk):
         The message depends on the HTTP status for accessing the Dataverse installation.
         If the HTTP status is 200, then the process can continue and the user gets the path to metadata template they need to fill in for the selected Dataverse installation.
         If the HTTP status is not 200, the process cannot continue until the user can provide valid authentication credentials.
-    resp : ...
+    resp: ...
+        ...
+    ds: ...
         ...
     """
-    if inp_dv == "RDR":
-        BASE_URL = "https://rdr.kuleuven.be/"
-    elif inp_dv == "Demo":
-        BASE_URL = "https://demo.dataverse.org"
+
+    # read once the configuration file located in a hard-coded path
+    config = ConfigParser()
+    config.read("src/customization.ini")
+
+    # Check that the Dataverse installation installation is configured
+    if inp_dv in config.sections():
+
+        # Instantiate the Dataset class of the selected Dataverse installation
+        ds = instantiate_selected_class(inp_dv, config)
+
+        # Gen information of the instantiated class
+        BASE_URL = ds.baseURL
+        mdPath = ds.metadataTemplate
+
+        # Authenticate to Dataverse installation
+        resp = authenticate_DV(BASE_URL, inp_tk)
+        if resp[0] == 200:
+            # If the user is authenticated, direct to the minimum metadata of the selected Dataverse installation
+            msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}."
+        else:
+            msg = "The authentication to the selected Dataverse installation failed."
     else:
-        print("The Dataverse installation you selected is not configured.")
+        msg = "The Dataverse installation you selected is not configured."
+        resp = None
+        ds = None
 
-    resp = authenticate_DV(BASE_URL, inp_tk)
-    if resp[0] == 200:
-        msg = get_template(inp_dv)
-    else:
-        msg = "The authentication to the selected Dataverse installation failed."
-
-    return msg, resp
-
-
-def initiate_ds(inp_dv):
-    """Based on the Dataverse installation, initiate the Dataset
-
-    Parameters
-    ----------
-    inp_dv: str
-        The selected Dataverse installation
-
-    Returns
-    -------
-    ds : Dataverse Dataset
-        The initial Dataset object of the selected Dataverse installation
-    """
-    if inp_dv == "RDR":
-        ds = Dataset()  # RDRDataset()
-    elif inp_dv == "Demo":
-        ds = Dataset()
-
-    return ds
+    return print(msg), resp, ds
 
 
 def validate_md(ds, md):
