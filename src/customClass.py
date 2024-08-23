@@ -33,5 +33,11 @@ class RDRDataset(Dataset):
         self.baseURL = "https://rdr.kuleuven.be/"
         self.metadataTemplate = "doc/metadata/template_RDR.json"
 
-    def __call__(self):
-        print(f"A {self.name} is instantiated")
+
+class RDRTestDataset(RDRDataset):
+    def __init__(self, data=None):
+        #  super extends the original constructor otherwise replacing
+        super().__init__(data=None)
+        self.name = "RDRTestDataset"
+        self.baseURL = "https://www.rdm.libis.kuleuven.be/"
+        self.metadataTemplate = "doc/metadata/template_RDR.json"
