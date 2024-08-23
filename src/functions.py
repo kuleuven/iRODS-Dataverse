@@ -5,10 +5,7 @@ from irods.meta import iRODSMeta, AVUOperation
 from irods.column import Criterion
 from irods.models import Collection, DataObject, DataObjectMeta
 from pyDataverse.api import NativeApi
-from pyDataverse.models import (
-    Dataset,
-    Datafile,
-)  # import also the DVObject to change class attributes?
+from pyDataverse.models import Datafile
 from pyDataverse.utils import read_file
 from configparser import ConfigParser
 import irods.keywords as kw
@@ -33,6 +30,7 @@ def authenticate_iRODS(env_path):
 
 def authenticate_DV(url, tk):
     """Check that the use can be authenticated to Dataverse.
+
     Parameters
     ----------
     url: str
@@ -62,7 +60,7 @@ def query_data(atr, val, session):
     ----------
     atr: str
       the metadata attribute describing the status of publication
-    val: str --->> CONSIDER LIST OF AV AS INPUT
+    val: str --->> TO DO: CONSIDER LIST OF AV AS INPUT
       the metadata value describing the status of publication, one of 'initiated', 'processed', 'deposited', 'published'
     session: iRODS session
 
@@ -150,7 +148,7 @@ def query_dv(atr, objPath, objName, session):
 
 
 def instantiate_selected_class(installationName, config):
-    """Instantiate Dataset class based on the selected Dataverse installation
+    """Instantiate Dataset class based on the selected Dataverse installation.
 
     Parameters
     ----------
@@ -189,10 +187,10 @@ def setup(inp_dv, inp_tk):
         The message depends on the HTTP status for accessing the Dataverse installation.
         If the HTTP status is 200, then the process can continue and the user gets the path to metadata template they need to fill in for the selected Dataverse installation.
         If the HTTP status is not 200, the process cannot continue until the user can provide valid authentication credentials.
-    resp: ...
-        ...
-    ds: ...
-        ...
+    resp: list
+        The returns of authenticate_DV
+    ds: class
+        The class that is instantiated
     """
 
     # read once the configuration file located in a hard-coded path
@@ -226,6 +224,7 @@ def setup(inp_dv, inp_tk):
 
 def validate_md(ds, md):
     """Validate that the metadata template is up-to-date [NOTE: In its current state this function is not needed]
+
     Parameters
     ----------
     ds : Dataverse Dataset
@@ -247,6 +246,7 @@ def validate_md(ds, md):
 
 def deposit_ds(api, inp_dv, ds):
     """Create a Dataverse dataset with user specified metadata
+
     Parameters
     ----------
     api : list
@@ -278,6 +278,7 @@ def deposit_ds(api, inp_dv, ds):
 
 def save_df(objPath, objName, trg_path, session):
     """Save locally the iRODS data objects destined for publication
+
     Parameters
     ----------
     objPath: list
@@ -301,6 +302,7 @@ def save_df(objPath, objName, trg_path, session):
 
 def deposit_df(api, dsPID, inp_df, inp_path):
     """Upload the list of data files in Dataverse Dataset
+
     Parameters
     ----------
     api : list
@@ -337,7 +339,8 @@ def deposit_df(api, dsPID, inp_df, inp_path):
 
 
 def extract_atr(JSONstr, atr):
-    """Extract attribute value from the datafile JSON response, for a given list of datafiles
+    """Extract attribute value from the datafile JSON response, for a given list of datafiles.
+
     Parameters
     ----------
     JSONstr : str
@@ -361,7 +364,8 @@ def extract_atr(JSONstr, atr):
 
 
 def save_md(item, atr, val, session):
-    """Add metadata in iRODS
+    """Add metadata in iRODS.
+
     Parameters
     ----------
     item: str
@@ -374,6 +378,7 @@ def save_md(item, atr, val, session):
     """
 
     obj = session.data_objects.get(f"{item}")
-    obj.metadata.apply_atomic_operations(
-        AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
-    )
+    # obj.metadata.apply_atomic_operations(
+    #     AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
+    # )
+    obj.metadata.set(f"{atr}", f"{val}")

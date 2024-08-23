@@ -2,7 +2,7 @@ import functions
 import maskpass
 import datetime
 
-# define custom colors (Octal ANSI sequences for colors ; https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#8-16-colors) => put in class?
+# define custom ascii octal colors => use rich instead
 esccolor = "\033[39m"  # color for the instructions, also the default color.
 actioncolor = "\033[33m"  # color for information on the actions in iRODS.
 infocolor = "\033[36m"  # color for messages related to the process, other than actions in iRODS.
@@ -97,33 +97,27 @@ else:
     )
 
 # Set-up for the selected Dataverse installation
-print(
-    f"Provide your Token for <{inp_dv}> Dataverse installation. Your Token will be encrypted and saved securely for future reference until expiration [TO DO <<< CHECK IF OKAY]."
-)
+print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
 token = maskpass.askpass(prompt="", mask="*")
 resp = functions.setup(
     inp_dv, token
 )  # this function also validates that the selected Dataverse installations is configured.
+ds = resp[2]
 
-
-input()  # Pause until the user provides the metadata >>>>> TO DO: CHANGE
-# >>>>> TO DO: provide a path for the metadata ; use data object metadata: A: dv.mdpath V: /set/home/datateam_set/iRODS2DV/md_ds.json
-# >>>>> TO DO: modify the following while loop
+print(
+    f"{infocolor}Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json and for RDR at doc/metadata/mdDataset_RDR.json{esccolor}"
+)
+md = input()
 
 # Validate metadata
-# md = resp[0][1]
-# print(
-#     md
-# )  # this is the local path to the json metadata template (doc/metadata/md_Demo.json) - put the md in iRODS
-md = "doc/metadata/mdDataset_Demo.json"
 vmd = functions.validate_md(resp[2], md)
 while not (vmd):
     print(
-        f"The metadata are not validated, modify <{md}>, save and hit enter to continue."
+        f"{infocolor}The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].{esccolor}"
     )
     input()
     vmd = functions.validate_md(resp[2], md)
-print("The metadata are validated, the process continues.")
+print(f"{infocolor}The metadata are validated, the process continues.{esccolor}")
 
 # Deposit draft in selected Dataverse installation
 ds_md = functions.deposit_ds(resp[1][1], inp_dv, resp[2])
