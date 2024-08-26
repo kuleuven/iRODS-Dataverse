@@ -281,23 +281,18 @@ def save_df(objPath, objName, trg_path, session):
 
     Parameters
     ----------
-    objPath: list
-      iRODS path of each data object for publication
-    objName: list
-      Filename of each data object for publication
+    objPath: str
+      iRODS path of a data object destined for publication
+    objName: str
+      Filename of a data object destined for publication
     trg_path: str
       Local directory to save data
     session: iRODS session
     """
-    opts = {kw.FORCE_FLAG_KW: True}
 
-    for item in range(len(objName)):
-        # chksum(f"{objPath[item]}/{objName[item]}", f"{trg_path}/{objName[item]}")
-        session.data_objects.get(
-            f"{objPath[item]}/{objName[item]}",
-            f"{trg_path}/{objName[item]}",
-            **opts,
-        )
+    opts = {kw.FORCE_FLAG_KW: True}
+    # TO DO: checksum in case download is not needed?
+    session.data_objects.get(f"{objPath}/{objName}", f"{trg_path}/{objName}", **opts)
 
 
 def deposit_df(api, dsPID, inp_df, inp_path):
@@ -309,8 +304,8 @@ def deposit_df(api, dsPID, inp_df, inp_path):
         Status and pyDataverse object
     dsPID : str
         Dataset Persistent Identifier
-    inp_df : list
-        The name of the files for publication
+    inp_df : str
+        The name of the file destined for publication
     inp_path: str
         The path to the local directory to save the data files
 
@@ -319,34 +314,28 @@ def deposit_df(api, dsPID, inp_df, inp_path):
     dfResp: list
         API response from each data file upload
     dfPID: list
-        String in JSON format with persistent ID  and filename.
+        String in JSON format with persistent ID and filename.
     """
 
-    dfResp = []
-    dfPID = []
-    for inp_i in inp_df:
-        df = Datafile()
-        df.set({"pid": dsPID, "filename": inp_i})
-        df.get()
-        resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
+    df = Datafile()
+    df.set({"pid": dsPID, "filename": inp_df})
+    df.get()
+    resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_df}", df.json())
 
-        print(f"{inp_i} is uploaded")
+    print(f"{inp_df} is uploaded")
 
-        dfResp.append(resp.json())
-        dfPID.append(df.json())
-
-    return dfResp, dfPID
+    return resp.json()  # , df.json()
 
 
 def extract_atr(JSONstr, atr):
-    """Extract attribute value from the datafile JSON response, for a given list of datafiles.
+    """Extract attribute value from the datafile JSON response, for a given datafile.
 
     Parameters
     ----------
     JSONstr : str
-        A string including a JSON structure for the persistent identified and the filename
+        A string including a JSON structure with metadata
     atr : str
-        The attribute to extract from teh dictionary
+        The attribute to extract from the dictionary
 
     Returns
     -------
@@ -354,16 +343,14 @@ def extract_atr(JSONstr, atr):
         Metadata value as a string item for each file uploaded in Dataverse
     """
 
-    lst_val = []
-    # TO DO: apply for JSONstr in list_of_JSONstr
-    json_obj = json.loads(JSONstr)
-    val = json_obj[atr]
-    lst_val.append(val)
+    JSONstr.replace("False", '"False"')
+    json_obj = json.dumps(JSONstr)
+    val = json_obj[atr]  # integers
 
-    return lst_val
+    return val
 
 
-def save_md(item, atr, val, session):
+def save_md(item, atr, val, session, op):
     """Add metadata in iRODS.
 
     Parameters
@@ -375,10 +362,20 @@ def save_md(item, atr, val, session):
     val: str
         Value of metadata attribute
     session: iRODS session
+    op: str
+        Metadata operation, one of "add" or "set".
     """
 
     obj = session.data_objects.get(f"{item}")
-    # obj.metadata.apply_atomic_operations(
-    #     AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
-    # )
-    obj.metadata.set(f"{atr}", f"{val}")
+    if op == "add":
+        obj.metadata.apply_atomic_operations(
+            AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
+        )
+        print(
+            f"Metadata attribute {atr} with value {val}> is added to data object {item}."
+        )
+    elif op == "set":
+        obj.metadata.set(f"{atr}", f"{val}")
+        print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
+    else:
+        print("No valid metadata operation is selected. Specify one of 'add' or 'set'.")

@@ -40,4 +40,3 @@ class RDRTestDataset(RDRDataset):
         super().__init__(data=None)
         self.name = "RDRTestDataset"
         self.baseURL = "https://www.rdm.libis.kuleuven.be/"
-        self.metadataTemplate = "doc/metadata/template_RDR.json"
