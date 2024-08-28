@@ -34,6 +34,7 @@ def authenticate_iRODS(env_path):
         print("""the environment file does not exist
               You are not authenticated to iRODS""")
         raise SystemExit  
+        return None
         
 
 
@@ -116,8 +117,15 @@ def split_obj(obj):
     return objPath, objName
 
 
+def check_identical_list_elements(list):
+    """check if all elements in a list are identical
+    param: list
+    returns: bool"""
+    return all(i == list[0] for i in list)
+
 def query_dv(atr, objPath, objName, session):
-    """iRODS query to get the Dataverse installation the data are destined for publication.
+    """iRODS query to get the Dataverse installation for the data that are destined for publication if
+    specified as metadata dv.installation
 
     Parameters
     ----------
@@ -151,7 +159,11 @@ def query_dv(atr, objPath, objName, session):
         for item in qMD:
             lMD.append(f"{item[DataObjectMeta.value]}")
 
-    return lMD
+    if check_identical_list_elements(lMD):
+        return lMD
+    else: 
+        print("Multiple dataverse installations found in metadata ")
+        return []
 
 
 def get_data_object(session, object_location):
@@ -193,6 +205,7 @@ def save_md(item, atr, val, session):
             )
         return True
     except Exception as e: #change this to specific exception
+        print(type(e))
         return False
 
 

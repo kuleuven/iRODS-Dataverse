@@ -72,6 +72,8 @@ print(
 objInfo = functions.split_obj(inp_dt)
 objPath = objInfo[0]
 objName = objInfo[1]
+print(objPath)
+print(objInfo[0])
 
 for i in range(len(objName)):
     # Update status of publication in iRODS from 'initiated' to 'processed'
@@ -116,12 +118,14 @@ else:
 print(
     f"Provide your Token for <{inp_dv}> Dataverse installation. Your Token will be encrypted and saved securely for future reference until expiration [TO DO <<< CHECK IF OKAY]."
 )
-token = maskpass.askpass(prompt="", mask="*")
-resp = functions.setup(
-    inp_dv, token
-)  # this function also validates that the selected Dataverse installations is configured.
+token = ""
+while len(token) <= 0: 
+        token = maskpass.askpass(prompt="", mask="*")
+else: 
+    resp = functions.setup(inp_dv, token)  # this function also validates that the selected Dataverse installations is configured.
 
-# Initiate a dataset in the selected Dataverse installation
+# --- Initiate a dataset in the selected Dataverse installation ---#
+
 ds = functions.initiate_ds(inp_dv)
 input()  # Pause until the user provides the metadata >>>>> TO DO: CHANGE
 # >>>>> TO DO: provide a path for the metadata ; use data object metadata: A: dv.mdpath V: /set/home/datateam_set/iRODS2DV/md_ds.json
