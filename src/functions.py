@@ -1,6 +1,7 @@
 import os
 import json
 from irods.session import iRODSSession
+from irods.path import iRODSPath
 from irods.meta import iRODSMeta, AVUOperation
 from irods.column import Criterion
 from irods.models import Collection, DataObject, DataObjectMeta
@@ -30,8 +31,9 @@ def authenticate_iRODS(env_path):
         session = iRODSSession(irods_env_file=env_file)
         return session
     else:
-        print("the environment file does not exist")
-        return None
+        print("""the environment file does not exist
+              You are not authenticated to iRODS""")
+        raise SystemExit  
         
 
 
@@ -61,7 +63,6 @@ def authenticate_DV(url, tk):
 
 def query_data(atr, val, session):
     """iRODS query to get the data objects destined for publication based on metadata.
-
     Parameters
     ----------
     atr: str
@@ -151,6 +152,48 @@ def query_dv(atr, objPath, objName, session):
             lMD.append(f"{item[DataObjectMeta.value]}")
 
     return lMD
+
+
+def get_data_object(session, object_location):
+    """
+    Do operations on the data_object
+    
+    """
+    #if not session.collections.exists(object_name):
+     #   object_location = iRODSPath('ghum', 'home/datateam_ghum',
+      #                              'irods_to_dataverse', object_name)
+    print(object_location)
+    obj = session.data_objects.get(object_location)
+    print(obj.name)
+    print(obj.collection)
+    print(obj.path)
+    return obj
+
+
+
+
+
+def save_md(item, atr, val, session):
+    """Add metadata in iRODS
+    Parameters
+    ----------
+    item: str
+        Path and name of the data object in iRODS
+    atr: str
+        Name of metadata attribute
+    val: str
+        Value of metadata attribute
+    session: iRODS session
+    """
+
+    try:
+        obj = session.data_objects.get(f"{item}")
+        obj.metadata.apply_atomic_operations(
+            AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
+            )
+        return True
+    except Exception as e: #change this to specific exception
+        return False
 
 
 def get_template(inp_dv):
@@ -308,6 +351,8 @@ def save_df(objPath, objName, trg_path, session):
         )
 
 
+
+
 def deposit_df(api, dsPID, inp_df, inp_path):
     """Upload the list of data files in Dataverse Dataset
     Parameters
@@ -335,7 +380,9 @@ def deposit_df(api, dsPID, inp_df, inp_path):
         df = Datafile()
         df.set({"pid": dsPID, "filename": inp_i})
         df.get()
+        #resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
         resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
+
 
         print(f"{inp_i} is uploaded")
 
@@ -368,21 +415,3 @@ def extract_atr(JSONstr, atr):
 
     return lst_val
 
-
-def save_md(item, atr, val, session):
-    """Add metadata in iRODS
-    Parameters
-    ----------
-    item: str
-        Path and name of the data object in iRODS
-    atr: str
-        Name of metadata attribute
-    val: str
-        Value of metadata attribute
-    session: iRODS session
-    """
-
-    obj = session.data_objects.get(f"{item}")
-    obj.metadata.apply_atomic_operations(
-        AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
-    )
