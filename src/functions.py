@@ -12,6 +12,8 @@ from pyDataverse.models import (
 )  # import also the DVObject to change class attributes?
 from pyDataverse.utils import read_file
 import irods.keywords as kw
+import hashlib
+
 
 
 def authenticate_iRODS(env_path):
@@ -24,17 +26,22 @@ def authenticate_iRODS(env_path):
 
     Returns
     -------
-    session: iRODS session
+    session: iRODS session / or False
     """
     if os.path.exists(env_path):
         env_file = os.getenv("iRODS_ENVIRONMENT_FILE", env_path)
         session = iRODSSession(irods_env_file=env_file)
+        try:
+            with open(env_path) as file:
+                data = json.load(file)
+                session.collections.get(data["irods_cwd"])
+        except:
+            print("Invalid authentication please make sure the client is configured correctly")
+            return False
         return session
     else:
-        print("""the environment file does not exist
-              You are not authenticated to iRODS""")
-        raise SystemExit  
-        return None
+        print("The environment file does not exist please make sure the client if configured correctly")
+        return False
         
 
 
@@ -85,7 +92,10 @@ def query_data(atr, val, session):
         .filter(Criterion("=", DataObjectMeta.value, val))
     )
     for item in qobj:
-        lobj.append(f"{item[Collection.name]}/{item[DataObject.name]}")
+        #lobj.append(f"{item[Collection.name]}/{item[DataObject.name]}")
+        obj_location = f"{item[Collection.name]}/{item[DataObject.name]}"
+        obj = session.data_objects.get(obj_location)
+        lobj.append(obj)
     lobj = list(set(lobj))
     return lobj  # qobj
 
@@ -123,7 +133,7 @@ def check_identical_list_elements(list):
     returns: bool"""
     return all(i == list[0] for i in list)
 
-def query_dv(atr, objPath, objName, session):
+def query_dv(atr, data_object, session):
     """iRODS query to get the Dataverse installation for the data that are destined for publication if
     specified as metadata dv.installation
 
@@ -144,7 +154,7 @@ def query_dv(atr, objPath, objName, session):
     """
 
     lMD = []
-    for item in range(len(objPath)):
+    for item in range(len(data_object)):
         qMD = (
             session.query(
                 Collection.name,
@@ -152,8 +162,8 @@ def query_dv(atr, objPath, objName, session):
                 DataObjectMeta.name,
                 DataObjectMeta.value,
             )
-            .filter(Criterion("=", Collection.name, objPath[item]))
-            .filter(Criterion("=", DataObject.name, objName[item]))
+            .filter(Criterion("=", Collection.name, data_object[item].path))
+            .filter(Criterion("=", DataObject.name, data_object[item].name))
             .filter(Criterion("=", DataObjectMeta.name, atr))
         )
         for item in qMD:
@@ -167,8 +177,9 @@ def query_dv(atr, objPath, objName, session):
 
 
 def get_data_object(session, object_location):
-    """
-    Do operations on the data_object
+    """do operations on the data_object
+    param: session, object path 
+    returns: obj
     
     """
     #if not session.collections.exists(object_name):
@@ -185,28 +196,33 @@ def get_data_object(session, object_location):
 
 
 
-def save_md(item, atr, val, session):
+def save_md(item, atr, val):
     """Add metadata in iRODS
     Parameters
     ----------
-    item: str
-        Path and name of the data object in iRODS
+    item: irods data object
     atr: str
         Name of metadata attribute
     val: str
         Value of metadata attribute
-    session: iRODS session
+    session:
+      iRODS session
     """
 
+    #print(item)
     try:
-        obj = session.data_objects.get(f"{item}")
-        obj.metadata.apply_atomic_operations(
+        #functions.get_data_object(session, inp_i)
+        #obj = session.data_objects.get(f"{item}")
+        item.metadata.apply_atomic_operations(
             AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
             )
         return True
     except Exception as e: #change this to specific exception
         print(type(e))
+        print(f"An error occurred: {e}")
         return False
+    
+
 
 
 def get_template(inp_dv):
@@ -340,8 +356,17 @@ def deposit_ds(api, inp_dv, ds):
 
     return dsStatus, dsPID, dsID, dsPURL
 
+def checksum(f):
+    md5 = hashlib.md5()    
+    md5.update(open(f).read())
+    return md5.hexdigest()
 
-def save_df(objPath, objName, trg_path, session):
+def is_contents_same(f1, f2):
+    return checksum(f1) == checksum(f2)
+
+
+
+def save_df(data_objects_list, trg_path, session):
     """Save locally the iRODS data objects destined for publication
     Parameters
     ----------
@@ -355,18 +380,17 @@ def save_df(objPath, objName, trg_path, session):
     """
     opts = {kw.FORCE_FLAG_KW: True}
 
-    for item in range(len(objName)):
+    for item in data_objects_list:
         # chksum(f"{objPath[item]}/{objName[item]}", f"{trg_path}/{objName[item]}")
-        session.data_objects.get(
-            f"{objPath[item]}/{objName[item]}",
-            f"{trg_path}/{objName[item]}",
-            **opts,
-        )
+       # if is_contents_same(data_objects_list[i].path, f"{trg_path}/{data_objects_list[i].name}"):
+        session.data_objects.get(item.path,f"{trg_path}/{item.name}",**opts)
+        #else: 
+        #    f"file {data_objects_list[i].name} was skipped"
 
 
 
 
-def deposit_df(api, dsPID, inp_df, inp_path):
+def deposit_df(api, dsPID, data_objects_list, inp_path):
     """Upload the list of data files in Dataverse Dataset
     Parameters
     ----------
@@ -389,16 +413,13 @@ def deposit_df(api, dsPID, inp_df, inp_path):
 
     dfResp = []
     dfPID = []
-    for inp_i in inp_df:
+    for item in data_objects_list:
         df = Datafile()
-        df.set({"pid": dsPID, "filename": inp_i})
+        df.set({"pid": dsPID, "filename": item.name})
         df.get()
         #resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
-        resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
-
-
-        print(f"{inp_i} is uploaded")
-
+        resp = api.upload_datafile(dsPID, f"{inp_path}/{item.name}", df.json())
+        print(f"{item} is uploaded")
         dfResp.append(resp.json())
         dfPID.append(df.json())
 
