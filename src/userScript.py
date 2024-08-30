@@ -47,6 +47,7 @@ print("Select data in iRODS, via attached metadata in iRODS or via iRODS paths a
 
 atr_publish = "dv.publication"   
 val = "initiated"
+
 data_objects_list = functions.query_data(atr_publish, val, session)  #look for data based on A = dv.publication & value = initiated
 if len(data_objects_list) == 0: #ldt = qdata   
     print(f"{infocolor}No metadata with attribute <{atr_publish}> and value <{val}> are found.{esccolor}")
@@ -57,7 +58,7 @@ if len(data_objects_list) == 0: #ldt = qdata
         try: 
             obj = session.data_objects.get(inp_i)
             data_objects_list.append(obj)
-            if (functions.save_md(inp_i, atr_publish, val, session, op="set")):
+            if (functions.save_md(obj, atr_publish, val, op="set")):
                 print(f"{actioncolor}Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object.{esccolor}")
             else: 
                 print(f"{warningcolor}The path of the data object is not correct. Please provide a correct path.{esccolor}")
@@ -90,10 +91,10 @@ print(objInfo[0])
 for item in data_objects_list:
     # Update status of publication in iRODS from 'initiated' to 'processed'
     functions.save_md(
-        item.path, atr_publish, "processed", session, op="set"
+        item, atr_publish, "processed", op="set"
     )
     # Dataset status timestamp
-    functions.save_md(item.path,"dv.publication.timestamp",datetime.datetime.now(),session, op="set")
+    functions.save_md(item,"dv.publication.timestamp",datetime.datetime.now(), op="set")
 
 print(f"{infocolor}Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.{esccolor}")
 
@@ -133,7 +134,7 @@ while not (vmd):
     print(
         f"{infocolor}The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].{esccolor}"
     )
-    input()
+    md = input()
     vmd = functions.validate_md(resp[2], md)
 print(f"{infocolor}The metadata are validated, the process continues.{esccolor}")
 
@@ -144,9 +145,9 @@ print(f"{infocolor}The Dataset publication metadata are: {ds_md}{esccolor}")
 
 for item in data_objects_list:
     # Dataset DOI
-    functions.save_md(item.path, "dv.ds.DOI", ds_md[1], session, op="add")
+    functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
     # Dataset PURL
-    functions.save_md(item.path, "dv.ds.PURL", ds_md[3], session, op="set")
+    functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
 print(
     f"{infocolor}Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.{esccolor}"
 )
@@ -157,25 +158,43 @@ print(
 # ---  Save data locally <<<<< CHECK alternatives for the user script --- #
 
 trg_path = f"{home}/iRODS-Dataverse/doc/data"
-functions.save_df(data_objects_list, trg_path, session)
 
-# --- Upload file(s): Include an option that if there are multiple objects either use a loop or use a python module for parallel upload. ---#
+for item in data_objects_list:
+    # Save data locally - TO DO: CHECK alternatives for the user script
+    functions.save_df(item, trg_path, session)
+    # Upload file(s) - TO DO: add description in iRODS and specify in datafile upload
+    md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
+    print(md)
+    # Update status of publication in iRODS from 'processed' to 'deposited'
+    functions.save_md(item, atr_publish, "deposited", op="set")
+    # Update timestamp
+    functions.save_md(item,"dv.publication.timestamp",datetime.datetime.now(),op="set")
 
-df_md = functions.deposit_df(resp[1][1], ds_md[1], data_objects_list, trg_path)
+
+   # # Extract relevant datafile metadata - TO DO
+    # df_id = functions.extract_atr(f"{md}", "id")
+    # df_md5 = functions.extract_atr(f"{md}", "md5")
+    # df_storID = functions.extract_atr(f"{md}", "storageIdentifier")
+
+    # # Add metadata in iRODS
+    # functions.save_md(
+    #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
+    # )
+    # functions.save_md(
+    #     f"{objPath[i]}/{objName[i]}", "dv.df.md5", df_md5, session, op="set"
+    # )
+    # functions.save_md(
+    #     f"{objPath[i]}/{objName[i]}",
+    #     "dv.df.storageIdentifier",
+    #     df_storID,
+    #     session,
+    #     op="set",
+    # )
 
 
-# # Extract PID of each file(s) ==> This is the same as the Dataset DOI, check if there is file specific metadata
-# df_PID = functions.extract_atr(df_md[1][0], "pid")
-# print(df_PID)
-
-# # Add datafile metadata in iRODS
-# for i in range(len(objName)):
-#     # Datafile DOI
-#     functions.save_md(f"{objPath[i]}/{objName[i]}", "dv.df.DOI", df_PID[i], session)
-#     print(
-#         f"{infocolor}The Datafile DOI is added as metadata to the selected data object.{esccolor}"
-#     )
-
+print(
+    f"{infocolor}Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.{esccolor}"
+)
 
 # Additional metadata could be extracted from the filled-in Dataverse metadata template (e.g. author information)
 

@@ -195,34 +195,6 @@ def get_data_object(session, object_location):
 
 
 
-def save_md(item, atr, val):
-    """Add metadata in iRODS
-    Parameters
-    ----------
-    item: irods data object
-    atr: str
-        Name of metadata attribute
-    val: str
-        Value of metadata attribute
-    session:
-      iRODS session
-    """
-
-    #print(item)
-    try:
-        #functions.get_data_object(session, inp_i)
-        #obj = session.data_objects.get(f"{item}")
-        item.metadata.apply_atomic_operations(
-            AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
-            )
-        return True
-    except Exception as e: #change this to specific exception
-        print(type(e))
-        print(f"An error occurred: {e}")
-        return False
-    
-
-
 
 def instantiate_selected_class(installationName, config):
     """Instantiate Dataset class based on the selected Dataverse installation.
@@ -272,18 +244,16 @@ def setup(inp_dv, inp_tk):
 
     # read once the configuration file located in a hard-coded path
     config = ConfigParser()
-    config.read("src/customization.ini")
-
+    config.read("customization.ini")
+    print(config.sections)
     # Check that the Dataverse installation installation is configured
     if inp_dv in config.sections():
-
+        print("true")
         # Instantiate the Dataset class of the selected Dataverse installation
         ds = instantiate_selected_class(inp_dv, config)
-
         # Gen information of the instantiated class
         BASE_URL = ds.baseURL
         mdPath = ds.metadataTemplate
-
         # Authenticate to Dataverse installation
         resp = authenticate_DV(BASE_URL, inp_tk)
         if resp[0] == 200:
@@ -314,12 +284,14 @@ def validate_md(ds, md):
     resp : bool
         It is `True` if the metadata template fits the Dataverse expectations and `False` if it does not.
     """
-
-    ds.from_json(read_file(md))
-    resp = ds.validate_json()
-
-    return resp
-
+    try:
+        ds.from_json(read_file(md))
+        resp = ds.validate_json()
+        return resp
+    except Exception as e: #change this to specific exception
+        print(type(e))
+        print(f"An error occurred: {e}")
+        return False
 
 def deposit_ds(api, inp_dv, ds):
     """Create a Dataverse dataset with user specified metadata
@@ -362,7 +334,7 @@ def is_contents_same(f1, f2):
 
 
 
-def save_df(data_objects_list, trg_path, session):
+def save_df(data_object, trg_path, session):
     """Save locally the iRODS data objects destined for publication
 
     Parameters
@@ -375,13 +347,12 @@ def save_df(data_objects_list, trg_path, session):
       Local directory to save data
     session: iRODS session
     """
-
     opts = {kw.FORCE_FLAG_KW: True}
     # TO DO: checksum in case download is not needed?
-    session.data_objects.get(f"{objPath}/{objName}", f"{trg_path}/{objName}", **opts)
+    session.data_objects.get(data_object.path, f"{trg_path}/{data_object.name}", **opts)
 
 
-def deposit_df(api, dsPID, data_objects_list, inp_path):
+def deposit_df(api, dsPID, data_object_name, inp_path):
     """Upload the list of data files in Dataverse Dataset
 
     Parameters
@@ -404,11 +375,11 @@ def deposit_df(api, dsPID, data_objects_list, inp_path):
     """
 
     df = Datafile()
-    df.set({"pid": dsPID, "filename": inp_df})
+    df.set({"pid": dsPID, "filename": data_object_name})
     df.get()
-    resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_df}", df.json())
+    resp = api.upload_datafile(dsPID, f"{inp_path}/{data_object_name}", df.json())
 
-    print(f"{inp_df} is uploaded")
+    print(f"{data_object_name} is uploaded")
 
     return resp.json()  # , df.json()
 
@@ -436,7 +407,7 @@ def extract_atr(JSONstr, atr):
     return val
 
 
-def save_md(item, atr, val, session, op):
+def save_md(item, atr, val, op):
     """Add metadata in iRODS.
 
     Parameters
@@ -452,16 +423,26 @@ def save_md(item, atr, val, session, op):
         Metadata operation, one of "add" or "set".
     """
 
-    obj = session.data_objects.get(f"{item}")
-    if op == "add":
-        obj.metadata.apply_atomic_operations(
-            AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
-        )
-        print(
-            f"Metadata attribute {atr} with value {val}> is added to data object {item}."
-        )
-    elif op == "set":
-        obj.metadata.set(f"{atr}", f"{val}")
-        print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
-    else:
-        print("No valid metadata operation is selected. Specify one of 'add' or 'set'.")
+   # obj = session.data_objects.get(f"{item}")
+    try:
+        if op == "add":
+            item.metadata.apply_atomic_operations(
+                AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
+            )
+            print(
+                f"Metadata attribute {atr} with value {val}> is added to data object {item}."
+            )
+            return True
+        elif op == "set":
+            item.metadata.set(f"{atr}", f"{val}")
+            print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
+            return True
+        else:
+            print("No valid metadata operation is selected. Specify one of 'add' or 'set'.")
+            return True
+    except Exception as e: #change this to specific exception
+        print(type(e))
+        print(f"An error occurred: {e}")
+        return False
+    
+
