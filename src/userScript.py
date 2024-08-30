@@ -32,8 +32,7 @@ else:
     raise SystemExit  
 
 
-# --- Select Data: if there is no metadata specifying the obcject that needs to be published, 
-# ask user to provide the path --- #
+# --- Select Data: if there is no metadata specifying the obcject that needs to be published,  ask user to provide the path --- #
 
 print("Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input")
 
