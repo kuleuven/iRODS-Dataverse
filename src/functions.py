@@ -6,11 +6,9 @@ from irods.meta import iRODSMeta, AVUOperation
 from irods.column import Criterion
 from irods.models import Collection, DataObject, DataObjectMeta
 from pyDataverse.api import NativeApi
-from pyDataverse.models import (
-    Dataset,
-    Datafile,
-)  # import also the DVObject to change class attributes?
+from pyDataverse.models import Datafile
 from pyDataverse.utils import read_file
+from configparser import ConfigParser
 import irods.keywords as kw
 import hashlib
 
@@ -47,6 +45,7 @@ def authenticate_iRODS(env_path):
 
 def authenticate_DV(url, tk):
     """Check that the use can be authenticated to Dataverse.
+
     Parameters
     ----------
     url: str
@@ -75,7 +74,7 @@ def query_data(atr, val, session):
     ----------
     atr: str
       the metadata attribute describing the status of publication
-    val: str --->> CONSIDER LIST OF AV AS INPUT
+    val: str --->> TO DO: CONSIDER LIST OF AV AS INPUT
       the metadata value describing the status of publication, one of 'initiated', 'processed', 'deposited', 'published'
     session: iRODS session
 
@@ -225,39 +224,39 @@ def save_md(item, atr, val):
 
 
 
-def get_template(inp_dv):
-    """Direct user to metadata template.
+def instantiate_selected_class(installationName, config):
+    """Instantiate Dataset class based on the selected Dataverse installation.
 
     Parameters
     ----------
-    inp_dv: str
-        The selected Dataverse installation
+     installationName: str
+        The Dataverse installation specified by the user
+    config: ini
+        The file to initialize the configured Dataset classes
 
     Returns
     -------
-    msg : str
-        A message including the path to the JSON file with the required metadata template for the selected Dataverse installation
-    mdPath : str
-        The path to the metadata template for the selected Dataverse installation
+     selectedClass: class
+        The class to instantiate
     """
 
-    if inp_dv == "RDR":
-        mdPath = "doc/metadata/template_RDR.json"
-    elif inp_dv == "Demo":
-        mdPath = "doc/metadata/template_Demo.json"
+    config_section = config[installationName]
+    modulename, classname = config_section["className"].split(".", 2)
+    module = __import__(modulename)
+    selectedClass = getattr(module, classname)
 
-    msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}, save and hit enter to continue."
-
-    return print(msg), mdPath
+    return selectedClass()
 
 
 def setup(inp_dv, inp_tk):
-    """Establish a session for the selected Dataverse installation.
+    """Establish a session for the selected Dataverse installation and create an empty dataset.
 
      Parameters
      ----------
      inp_dv: str
         The target Dataverse installation
+     inp_tk: str
+        The user token
 
     Returns
     -------
@@ -265,48 +264,44 @@ def setup(inp_dv, inp_tk):
         The message depends on the HTTP status for accessing the Dataverse installation.
         If the HTTP status is 200, then the process can continue and the user gets the path to metadata template they need to fill in for the selected Dataverse installation.
         If the HTTP status is not 200, the process cannot continue until the user can provide valid authentication credentials.
-    resp : ...
-        ...
+    resp: list
+        The returns of authenticate_DV
+    ds: class
+        The class that is instantiated
     """
-    if inp_dv == "RDR":
-        BASE_URL = "https://rdr.kuleuven.be/"
-    elif inp_dv == "Demo":
-        BASE_URL = "https://demo.dataverse.org"
+
+    # read once the configuration file located in a hard-coded path
+    config = ConfigParser()
+    config.read("src/customization.ini")
+
+    # Check that the Dataverse installation installation is configured
+    if inp_dv in config.sections():
+
+        # Instantiate the Dataset class of the selected Dataverse installation
+        ds = instantiate_selected_class(inp_dv, config)
+
+        # Gen information of the instantiated class
+        BASE_URL = ds.baseURL
+        mdPath = ds.metadataTemplate
+
+        # Authenticate to Dataverse installation
+        resp = authenticate_DV(BASE_URL, inp_tk)
+        if resp[0] == 200:
+            # If the user is authenticated, direct to the minimum metadata of the selected Dataverse installation
+            msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}."
+        else:
+            msg = "The authentication to the selected Dataverse installation failed."
     else:
-        print("The Dataverse installation you selected is not configured.")
+        msg = "The Dataverse installation you selected is not configured."
+        resp = None
+        ds = None
 
-    resp = authenticate_DV(BASE_URL, inp_tk)
-    if resp[0] == 200:
-        msg = get_template(inp_dv)
-    else:
-        msg = "The authentication to the selected Dataverse installation failed."
-
-    return msg, resp
-
-
-def initiate_ds(inp_dv):
-    """Based on the Dataverse installation, initiate the Dataset
-
-    Parameters
-    ----------
-    inp_dv: str
-        The selected Dataverse installation
-
-    Returns
-    -------
-    ds : Dataverse Dataset
-        The initial Dataset object of the selected Dataverse installation
-    """
-    if inp_dv == "RDR":
-        ds = Dataset()  # RDRDataset()
-    elif inp_dv == "Demo":
-        ds = Dataset()
-
-    return ds
+    return print(msg), resp, ds
 
 
 def validate_md(ds, md):
     """Validate that the metadata template is up-to-date [NOTE: In its current state this function is not needed]
+
     Parameters
     ----------
     ds : Dataverse Dataset
@@ -328,6 +323,7 @@ def validate_md(ds, md):
 
 def deposit_ds(api, inp_dv, ds):
     """Create a Dataverse dataset with user specified metadata
+
     Parameters
     ----------
     api : list
@@ -368,38 +364,34 @@ def is_contents_same(f1, f2):
 
 def save_df(data_objects_list, trg_path, session):
     """Save locally the iRODS data objects destined for publication
+
     Parameters
     ----------
-    objPath: list
-      iRODS path of each data object for publication
-    objName: list
-      Filename of each data object for publication
+    objPath: str
+      iRODS path of a data object destined for publication
+    objName: str
+      Filename of a data object destined for publication
     trg_path: str
       Local directory to save data
     session: iRODS session
     """
+
     opts = {kw.FORCE_FLAG_KW: True}
-
-    for item in data_objects_list:
-        # chksum(f"{objPath[item]}/{objName[item]}", f"{trg_path}/{objName[item]}")
-       # if is_contents_same(data_objects_list[i].path, f"{trg_path}/{data_objects_list[i].name}"):
-        session.data_objects.get(item.path,f"{trg_path}/{item.name}",**opts)
-        #else: 
-        #    f"file {data_objects_list[i].name} was skipped"
-
-
+    # TO DO: checksum in case download is not needed?
+    session.data_objects.get(f"{objPath}/{objName}", f"{trg_path}/{objName}", **opts)
 
 
 def deposit_df(api, dsPID, data_objects_list, inp_path):
     """Upload the list of data files in Dataverse Dataset
+
     Parameters
     ----------
     api : list
         Status and pyDataverse object
     dsPID : str
         Dataset Persistent Identifier
-    inp_df : list
-        The name of the files for publication
+    inp_df : str
+        The name of the file destined for publication
     inp_path: str
         The path to the local directory to save the data files
 
@@ -408,32 +400,28 @@ def deposit_df(api, dsPID, data_objects_list, inp_path):
     dfResp: list
         API response from each data file upload
     dfPID: list
-        String in JSON format with persistent ID  and filename.
+        String in JSON format with persistent ID and filename.
     """
 
-    dfResp = []
-    dfPID = []
-    for item in data_objects_list:
-        df = Datafile()
-        df.set({"pid": dsPID, "filename": item.name})
-        df.get()
-        #resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_i}", df.json())
-        resp = api.upload_datafile(dsPID, f"{inp_path}/{item.name}", df.json())
-        print(f"{item} is uploaded")
-        dfResp.append(resp.json())
-        dfPID.append(df.json())
+    df = Datafile()
+    df.set({"pid": dsPID, "filename": inp_df})
+    df.get()
+    resp = api.upload_datafile(dsPID, f"{inp_path}/{inp_df}", df.json())
 
-    return dfResp, dfPID
+    print(f"{inp_df} is uploaded")
+
+    return resp.json()  # , df.json()
 
 
 def extract_atr(JSONstr, atr):
-    """Extract attribute value from the datafile JSON response, for a given list of datafiles
+    """Extract attribute value from the datafile JSON response, for a given datafile.
+
     Parameters
     ----------
     JSONstr : str
-        A string including a JSON structure for the persistent identified and the filename
+        A string including a JSON structure with metadata
     atr : str
-        The attribute to extract from teh dictionary
+        The attribute to extract from the dictionary
 
     Returns
     -------
@@ -441,11 +429,39 @@ def extract_atr(JSONstr, atr):
         Metadata value as a string item for each file uploaded in Dataverse
     """
 
-    lst_val = []
-    # TO DO: apply for JSONstr in list_of_JSONstr
-    json_obj = json.loads(JSONstr)
-    val = json_obj[atr]
-    lst_val.append(val)
+    JSONstr.replace("False", '"False"')
+    json_obj = json.dumps(JSONstr)
+    val = json_obj[atr]  # integers
 
-    return lst_val
+    return val
 
+
+def save_md(item, atr, val, session, op):
+    """Add metadata in iRODS.
+
+    Parameters
+    ----------
+    item: str
+        Path and name of the data object in iRODS
+    atr: str
+        Name of metadata attribute
+    val: str
+        Value of metadata attribute
+    session: iRODS session
+    op: str
+        Metadata operation, one of "add" or "set".
+    """
+
+    obj = session.data_objects.get(f"{item}")
+    if op == "add":
+        obj.metadata.apply_atomic_operations(
+            AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
+        )
+        print(
+            f"Metadata attribute {atr} with value {val}> is added to data object {item}."
+        )
+    elif op == "set":
+        obj.metadata.set(f"{atr}", f"{val}")
+        print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
+    else:
+        print("No valid metadata operation is selected. Specify one of 'add' or 'set'.")
