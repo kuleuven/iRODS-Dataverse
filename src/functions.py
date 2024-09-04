@@ -153,17 +153,11 @@ def query_dv(atr, data_object, session):
     """
 
     lMD = []
-    for item in range(len(data_object)):
-        qMD = (
-            session.query(
-                Collection.name,
-                DataObject.name,
-                DataObjectMeta.name,
-                DataObjectMeta.value,
-            )
-            .filter(Criterion("=", Collection.name, data_object[item].path))
-            .filter(Criterion("=", DataObject.name, data_object[item].name))
-            .filter(Criterion("=", DataObjectMeta.name, atr))
+    for item in data_object:
+        qMD = (session.query(Collection.name,DataObject.name, DataObjectMeta.name, DataObjectMeta.value)
+        .filter(Criterion("=", Collection.name, item.path.replace("/" + item.name, '')))
+        .filter(Criterion("=", DataObject.name, item.name))
+        .filter(Criterion("=", DataObjectMeta.name, atr))
         )
         for item in qMD:
             lMD.append(f"{item[DataObjectMeta.value]}")
@@ -171,7 +165,7 @@ def query_dv(atr, data_object, session):
     if check_identical_list_elements(lMD):
         return lMD
     else: 
-        print("Multiple dataverse installations found in metadata ")
+        print("Multiple dataverse installations found in metadata")
         return []
 
 
@@ -244,7 +238,7 @@ def setup(inp_dv, inp_tk):
 
     # read once the configuration file located in a hard-coded path
     config = ConfigParser()
-    config.read("customization.ini")
+    config.read("src/customization.ini")
     print(config.sections)
     # Check that the Dataverse installation installation is configured
     if inp_dv in config.sections():
