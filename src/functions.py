@@ -318,6 +318,8 @@ def deposit_ds(api, inp_dv, ds):
 
     return dsStatus, dsPID, dsID, dsPURL
 
+
+"""
 def checksum(f):
     md5 = hashlib.md5()    
     md5.update(open(f).read())
@@ -325,7 +327,7 @@ def checksum(f):
 
 def is_contents_same(f1, f2):
     return checksum(f1) == checksum(f2)
-
+"""
 
 
 def save_df(data_object, trg_path, session):
