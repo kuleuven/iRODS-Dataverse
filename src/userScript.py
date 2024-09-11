@@ -138,7 +138,7 @@ print(f"{infocolor}The Dataset DOI and PURL are added as metadata to the selecte
 
 # ---  Save data locally <<<<< CHECK alternatives for the user script --- #
 
-trg_path = f"{home}/iRODS-Dataverse/doc/data"
+trg_path = "doc/data"
 
 for item in data_objects_list:
     # Save data locally - TO DO: CHECK alternatives for the user script
