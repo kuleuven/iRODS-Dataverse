@@ -32,8 +32,7 @@
         }
       },
       "type": "object",
-      "required": false,
-      "repeatable": true,
+      "repeatable": false,
       "help": "The entity, e.g. person or organization, that created the Dataset"
     },
     "datasetContact": {
@@ -52,12 +51,11 @@
           "type": "text",
           "placeholder": "",
           "pattern": "",
-          "required": true,
+          "required": false,
           "help": "The point of contact's email address"
         }
       },
       "type": "object",
-      "required": false,
       "repeatable": true,
       "help": "The entity, e.g. person or organization, that users of the Dataset can contact with questions"
     },
@@ -65,16 +63,15 @@
       "title": "Description",
       "properties": {
         "dsDescriptionValue": {
-          "title": "Text",
+          "title": "Text of the description",
           "type": "textarea",
-          "placeholder": "",
+          "placeholder": "This dataset contains data used in...",
           "pattern": "",
           "required": true,
-          "help": "A summary describing the purpose, nature, and scope of the Dataset"
+          "help": "The name of the author, such as the person's name or the name of the organization"
         }
       },
       "type": "object",
-      "required": false,
       "repeatable": true,
       "help": "A summary describing the purpose, nature, and scope of the Dataset"
     },
@@ -103,8 +100,8 @@
       "help": "The area of study relevant to the Dataset"
     }
   },
-  "edited_by": "demonstrator",
-  "realm": "demo",
+  "edited_by": "u0112360",
+  "realm": "datateam_set",
   "title": "ManGO Dataset to Dataverse Demo",
   "parent": ""
 }
