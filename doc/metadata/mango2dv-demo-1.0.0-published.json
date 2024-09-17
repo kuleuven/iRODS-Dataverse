@@ -56,7 +56,7 @@
         }
       },
       "type": "object",
-      "repeatable": true,
+      "repeatable": false,
       "help": "The entity, e.g. person or organization, that users of the Dataset can contact with questions"
     },
     "dsDescription": {
