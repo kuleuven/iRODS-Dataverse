@@ -158,19 +158,46 @@ For RDR, there is a fix for Java DVUploader with GO client.
 
 Does the Java dvuploader support tagging?
 
+*TO DO-5: Investigate direct upload with the Java DVUploader.*
+
+
 ### Python-dvuploader
 
 Supported by the Global Dataverse Community Consortium (GDCC).
 
 Reference: https://github.com/gdcc/python-dvuploader.
 
-Python-dvuploader is not a viable option for direct upload and a lot of work should be done to make it a viable option. 
+```
+import dvuploader as dv
 
-* Hands-on testing showed that it does not support direct upload, it falls back to native API.
-* Cannot upload a directory, all files and their path should be explicitly specified.
-* Does not support <a href="https://guides.dataverse.org/en/latest/api/native-api.html#request-signed-url">URL signing</a>. For RDR, tagging is not supported while the dvuploader python module assumes that tagging is supported. We do not know whether Demo and DANS support tagging, but since it is not a solution for RDR, investigating for other installations does not seem to be a priority.
+DV_URL = "https://demo.dataverse.org"
+API_TOKEN = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+PID = "doi:10.70122/FK2/K7KGHG"
 
-Additional work needed to make python dvuploader viable option: We can make a PR to the python-dvuploader to add an option for not supported tagging, like Eryk did in other cases. However, multipart uploads for large files were still a problem, so we will need to investigate how to solve this issue with another PR. In Eryk's golang code he used an S3 library for a direct access to s3 using the s3 protocol for multipart uploads.
+files = [
+    *dv.add_directory("./dirL1"),  # Add an entire directory
+]
+
+dvuploader = dv.DVUploader(files=files)
+dvuploader.upload(
+    api_token=API_TOKEN,
+    dataverse_url=DV_URL,
+    persistent_id=PID,
+    n_parallel_uploads=3,  # Whatever your instance can handle
+)
+```
+
+* Does not work for Demo installation.
+Result: `Direct upload not supported. Falling back to Native API.` but the files are uploaded.
+
+* Does not work for RDR pilot and RDR installations.
+Result: `ClientResponseError(aiohttp.client_exceptions.ClientResponseError: 501, message='Not Implemented', url=URL('https://rdmo.icts.kuleuven.be/dataverse-pilot/10.82111/CQ5E9L/1920e82e122-8cf97cba6b31?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240920T081831Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=aihee9mieQueigeisoop/20240920/us-east-1/s3/aws4_request&X-Amz-Signature=5d662f12a0565b38e2c4392ef90d60816e2482dabfa563d85fce34e0cfa9b18e')`
+
+
+* Python-dvuploader does not support <a href="https://guides.dataverse.org/en/latest/api/native-api.html#request-signed-url">URL signing</a>. For RDR, tagging is not supported while the dvuploader python module assumes that tagging is supported. We do not know whether Demo and DANS support tagging, but since it is not a solution for RDR, investigating for other installations does not seem to be a priority.
+
+* Python-dvuploader is not a viable option for direct upload and a lot of work should be done to make it a viable option. Additional work needed to make python dvuploader viable option: We can make a PR to the python-dvuploader to add an option for not supported tagging, like Eryk did in other cases. However, multipart uploads for large files were still a problem, so we will need to investigate how to solve this issue with another PR. In Eryk's golang code he used an S3 library for a direct access to s3 using the s3 protocol for multipart uploads.
+
 
 
 ### Javascript client
@@ -179,7 +206,11 @@ Supported by the Institute for Quantitative Social Science (IQSS).
 
 The Javascript client is currently under development. In the documentation it is mentioned that the client supports direct upload but this remains to be tested for each installation. Reference: https://github.com/IQSS/dataverse-client-javascript and specifically for the direct upload, see the *File Uploading Use Cases* at https://github.com/IQSS/dataverse-client-javascript/blob/develop/docs/useCases.md#file-uploading-use-cases
 
-*TO DO-5: Investigate direct upload with the Javascript client.*
+A stable 1.x version of this package can be installed with warnings and 7 vulnerabilities (5 moderate, 2 high). An unstable 2.x version of this package can be installed with 5 vulnerabilities (3 moderate, 2 high).
+
+* For authentication, apart from the API Token, there is a session cookie option. The session cookie is an experimental feature and a mechanism should be enabled in the Dataverse installation.
+
+*TO DO-6: Discuss whether we should already investigate the Javascript client and if so, continue with the investigation.*
 
 ## ManGO-specific implementation
 
@@ -196,7 +227,7 @@ We need to check whether, policy-wise, is acceptable to encrypt and save the Dat
 
 For the iRODS session, the process followed in ManGO Flow could be used. This means that an operator account renews the session to keep the connection active until the requested process finishes. 
 
-*TO DO-6: If a process is followed asynchronously, investigate how we can use the Dataverse token.*
+*TO DO-7: If a process is followed asynchronously, investigate how we can use the Dataverse token.*
 
 
 ## Admin account for Dataverse
