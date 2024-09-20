@@ -28,6 +28,8 @@ According to Dataverse documentation, DVUploader supports direct upload. Other t
 
 ### CURL
 
+#### (1) GET Request for Direct Upload
+
 * Works for RDR pilot installation.
 
 Command to request a direct upload:
@@ -63,6 +65,37 @@ $ curl -H "X-Dataverse-key:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" "https://rdr.ku
 Result: 
 ```
 {"status":"OK","data":{"url":"https://rdmo.icts.kuleuven.be/dataverse/10.48804/RQLUMN/1921012dc84-0f95b8651330?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240920T153524Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=aihee9mieQueigeisoop%2F20240920%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=eaa5ecb83c450f9eefcb8d584d0c1c8a0617a23e3dfe269b7d9272e78b455942","partSize":1073741824,"storageIdentifier":"s3://dataverse:1921012dc84-0f95b8651330"}}
+```
+
+#### (2) PUT the file in S3
+
+Command (RDR):
+`$ curl -i -X PUT -T "doc/data/iRODSfile-20240920.txt" "https://rdmo.icts.kuleuven.be/dataverse/10.48804/RQLUMN/1921012dc84-0f95b8651330?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240920T153524Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=aihee9mieQueigeisoop%2F20240920%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=eaa5ecb83c450f9eefcb8d584d0c1c8a0617a23e3dfe269b7d9272e78b455942"`
+
+Result (RDR):
+```
+HTTP/1.1 200 OK
+content-type: text/html; charset=UTF-8
+content-length: 0
+etag: "c5c1518cbbac4c3c952a8eb98198f1d0"
+last-modified: Fri, 20 Sep 2024 15:52:10 GMT
+x-amz-id-2: txed2a72d9ec5b420aa7c47-0066ed9a29
+x-amz-request-id: txed2a72d9ec5b420aa7c47-0066ed9a29
+x-trans-id: txed2a72d9ec5b420aa7c47-0066ed9a29
+x-openstack-request-id: txed2a72d9ec5b420aa7c47-0066ed9a29
+date: Fri, 20 Sep 2024 15:52:10 GMT
+access-control-expose-headers: ETag, Accept-Ranges, Content-Encoding, Content-Range
+set-cookie: HASVR=s176; path=/; HttpOnly
+```
+
+#### (3) Add (POST) the uploaded file to a Dataset
+
+Command (RDR):
+`$ curl -X POST -H "X-Dataverse-key:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" "https://rdr.kuleuven.be/api/datasets/:persistentId/add?persistentId=doi:10.48804/RQLUMN" -F "jsonData={'description':'This is the description of the directly uploaded file.','directoryLabel':'data/subdir1','categories':['Data'], 'restrict':'false', 'storageIdentifier':'s3://dataverse:1921012dc84-0f95b8651330', 'fileName':'iRODSfile-20240920.txt', 'mimeType':'text/plain', 'checksum': {'@type': 'MD5', '@value': 'c5c1518cbbac4c3c952a8eb98198f1d0'}}"`
+
+Result:
+```
+{"status":"OK","message":{"message":"This file has the same content as iRODSfile-20240920.txt that is in the dataset. "},"data":{"files":[{"description":"This is the description of the directly uploaded file.","label":"iRODSfile-20240920.txt","restricted":false,"directoryLabel":"data/subdir1","version":1,"datasetVersionId":506,"categories":["Data"],"dataFile":{"id":216746,"persistentId":"","filename":"iRODSfile-20240920.txt","contentType":"text/plain","friendlyType":"Plain Text","filesize":147,"description":"This is the description of the directly uploaded file.","categories":["Data"],"storageIdentifier":"s3://dataverse:1921012dc84-0f95b8651330","rootDataFileId":-1,"md5":"c5c1518cbbac4c3c952a8eb98198f1d0","checksum":{"type":"MD5","value":"c5c1518cbbac4c3c952a8eb98198f1d0"},"tabularData":false,"creationDate":"2024-09-20","fileAccessRequest":false}}]}}
 ```
 
 ### pyDataverse
