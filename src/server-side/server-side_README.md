@@ -71,8 +71,9 @@ Supported by the Global Dataverse Community Consortium (GDCC).
 
 Reference: https://github.com/gdcc/pyDataverse
 
-The curl commands are wrapped in the python module pyDataverse. For the latest internal script see [directUpload.py](../directUpload.py).
+For the latest internal script see [directUpload.py](../directUpload.py).
 
+Using the Native API with pyDataverse we can send a POST request to add a file to a dataset. The file is not downloaded but it is read directly from iRODS. However, this method is not using the Direct Upload/Replace API.
 
 ```
 src_data_object: iRODSDataObject = session.data_objects.get(src)
@@ -93,10 +94,11 @@ Result: `{'status': 'ERROR', 'message': 'Failed to add file to dataset.'}`
 * Works for Demo installation.
 * Works for RDR installation.
 
-However:
+Note:
 
-> The result is a file uploaded directly from iRODS without download, linked already to the dataset with the specified DOI but the filename is specified as upload-#. The mimetype is correctly detected. A Following POST request to modify the jsonData is not working (see latest internal  python script)
-> Only a POST request works and the post request does not work without the file parameter. If there is no file parameter the result is `<Response [415 Unsupported Media Type]>`. For the PUT request the result is `<Response [405 Method Not Allowed]>`.
+The result is a file uploaded directly from iRODS without download, linked already to the dataset with the specified DOI but the filename is specified as upload-#. The mimetype is correctly detected. A Following POST request to modify the jsonData is not working (see latest internal  python script)
+
+Only a POST request works and the post request does not work without the file parameter. If there is no file parameter the result is `<Response [415 Unsupported Media Type]>`. For the PUT request the result is `<Response [405 Method Not Allowed]>`.
 
 
 Result of a working case (example):
