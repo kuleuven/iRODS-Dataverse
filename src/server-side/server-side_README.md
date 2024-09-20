@@ -54,14 +54,16 @@ Result:
 
 Tested also with a published version `doi:10.70122/FK2/DJ6YQF` and the result was the same.
 
-* Does not work for RDR installation. 
+* Works for RDR installation. 
 
 Command:
 ```
-$ curl -H "X-Dataverse-key:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" "https://www.rdm.libis.kuleuven.be/api/datasets/:persistentId/uploadurls?persistentId=doi:10.48804/RQLUMN&size=1024"
+$ curl -H "X-Dataverse-key:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" "https://rdr.kuleuven.be/api/datasets/:persistentId/uploadurls?persistentId=doi:10.48804/RQLUMN&size=1024"
 ```
 Result: 
-`{"status":"ERROR","message":"Bad API key"}`
+```
+{"status":"OK","data":{"url":"https://rdmo.icts.kuleuven.be/dataverse/10.48804/RQLUMN/1921012dc84-0f95b8651330?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240920T153524Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=aihee9mieQueigeisoop%2F20240920%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=eaa5ecb83c450f9eefcb8d584d0c1c8a0617a23e3dfe269b7d9272e78b455942","partSize":1073741824,"storageIdentifier":"s3://dataverse:1921012dc84-0f95b8651330"}}
+```
 
 ### pyDataverse
 
