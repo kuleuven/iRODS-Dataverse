@@ -18,6 +18,7 @@ class RDRDataset(Dataset):
         self._Dataset__attr_import_dv_up_citation_fields_values.append(
             "technicalFormat"
         )
+        self._Dataset__attr_import_dv_up_citation_fields_values.append("access")
         self._Dataset__attr_dict_dv_up_required = (
             self._Dataset__attr_dict_dv_up_required
             + ["access", "keyword", "technicalFormat"]
