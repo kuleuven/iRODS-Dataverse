@@ -88,6 +88,9 @@
                         "typeName": "technicalFormat"
                     },
                     {
+                        "typeName": "access",
+                        "multiple": false,
+                        "typeClass": "compound",
                         "value": {
                             "accessRights": {
                                 "typeName": "accessRights",
@@ -95,10 +98,7 @@
                                 "typeClass": "controlledVocabulary",
                                 "value": "open"
                             }
-                        },
-                        "typeClass": "compound",
-                        "multiple": false,
-                        "typeName": "access"
+                        }
                     }
                 ],
                 "displayName": "Citation Metadata"
