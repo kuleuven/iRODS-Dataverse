@@ -246,10 +246,9 @@ def setup(inp_dv, inp_tk):
     # read once the configuration file located in a hard-coded path
     config = ConfigParser()
     config.read("src/customization.ini")
-    print(config.sections)
     # Check that the Dataverse installation installation is configured
     if inp_dv in config.sections():
-        print("true")
+        print("The selected Dataverse installation is configured")
         # Instantiate the Dataset class of the selected Dataverse installation
         ds = instantiate_selected_class(inp_dv, config)
         # Gen information of the instantiated class

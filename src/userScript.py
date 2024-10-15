@@ -174,7 +174,7 @@ print(
     f"{infocolor}Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.{esccolor}"
 )
 print(
-    f"{infocolor}The Dataset DOI and PURL are added as metadata to the selected data objects.{esccolor}"
+    f"{infocolor}The Dataset DOI is added as metadata to the selected data objects.{esccolor}"
 )
 
 # ---  Save data locally <<<<< CHECK alternatives for the user script --- #
