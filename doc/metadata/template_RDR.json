@@ -27,7 +27,7 @@
                             }
                         ],
                         "typeClass": "compound",
-                        "multiple": false,
+                        "multiple": true,
                         "typeName": "author"
                     },
                     {

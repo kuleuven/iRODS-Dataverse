@@ -26,6 +26,7 @@ print(
 #  add the following metadata to at least one data object:                 #
 # A: dv.publication   V: initiated                                         #
 # A: dv.installation  V: Demo                                              #
+The configured Dataverse installations are: Demo, RDR, RDR-pilot           #
 #--------------------------------------------------------------------------# 
 """
 )
@@ -133,7 +134,6 @@ else:
     )
 
 # Set-up for the selected Dataverse installation
-
 print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
 token = maskpass.askpass(prompt="", mask="*")
 resp = functions.setup(
@@ -142,34 +142,31 @@ resp = functions.setup(
 ds = resp[2]
 
 print(
-    f"{infocolor}Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json and for RDR at doc/metadata/mdDataset_RDR.json{esccolor}"
+    f"{infocolor}Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json {esccolor}"
 )
 md = input()
 
 # Validate metadata
-
-
-vmd = functions.validate_md(resp[2], md)
+vmd = functions.validate_md(ds, md)
 while not (vmd):
     print(
         f"{infocolor}The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].{esccolor}"
     )
     md = input()
-    vmd = functions.validate_md(resp[2], md)
+    vmd = functions.validate_md(ds, md)
 print(f"{infocolor}The metadata are validated, the process continues.{esccolor}")
 
 # Deposit draft in selected Dataverse installation
-ds_md = functions.deposit_ds(resp[1][1], inp_dv, resp[2])
+ds_md = functions.deposit_ds(resp[1][1], ds.alias, ds)
 print(f"{infocolor}The Dataset publication metadata are: {ds_md}{esccolor}")
 
-
+# Add metadata in iRODS
 for item in data_objects_list:
     # Dataset DOI
     functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
     # # Dataset PURL
     # functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
-
-
+# Print message for updated metadata
 print(
     f"{infocolor}Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.{esccolor}"
 )
