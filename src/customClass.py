@@ -4,6 +4,7 @@ from pyDataverse.models import Dataset
 class DemoDataset(Dataset):
     def __init__(self, data=None):
         super().__init__(data=None)
+        self.alias = "demo"
         self.name = "DemoDataset"
         self.baseURL = "https://demo.dataverse.org"
         self.metadataTemplate = "doc/metadata/template_Demo.json"
@@ -18,6 +19,7 @@ class RDRDataset(Dataset):
         self._Dataset__attr_import_dv_up_citation_fields_values.append(
             "technicalFormat"
         )
+        self._Dataset__attr_import_dv_up_citation_fields_values.append("access")
         self._Dataset__attr_dict_dv_up_required = (
             self._Dataset__attr_dict_dv_up_required
             + ["access", "keyword", "technicalFormat"]
@@ -29,14 +31,16 @@ class RDRDataset(Dataset):
             self._Dataset__attr_dict_dv_up_type_class_controlled_vocabulary
             + ["accessRights", "legitimateOptout"]
         )
+        self.alias = "rdr"
         self.name = "RDRDataset"
         self.baseURL = "https://rdr.kuleuven.be/"
         self.metadataTemplate = "doc/metadata/template_RDR.json"
 
 
-class RDRTestDataset(RDRDataset):
+class RDRPilotDataset(RDRDataset):
     def __init__(self, data=None):
-        #  super extends the original constructor otherwise replacing
         super().__init__(data=None)
-        self.name = "RDRTestDataset"
+        self.alias = "rdr"
+        self.name = "RDRPilotDataset"
         self.baseURL = "https://www.rdm.libis.kuleuven.be/"
+        self.metadataTemplate = "doc/metadata/template_RDR-pilot.json"

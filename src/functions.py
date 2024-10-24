@@ -13,7 +13,6 @@ import irods.keywords as kw
 import hashlib
 
 
-
 def authenticate_iRODS(env_path):
     """Authenticate to iRODS, in the zone specified in the environment file.
 
@@ -34,13 +33,16 @@ def authenticate_iRODS(env_path):
                 data = json.load(file)
                 session.collections.get(data["irods_cwd"])
         except:
-            print("Invalid authentication please make sure the client is configured correctly")
+            print(
+                "Invalid authentication please make sure the client is configured correctly"
+            )
             return False
         return session
     else:
-        print("The environment file does not exist please make sure the client if configured correctly")
+        print(
+            "The environment file does not exist please make sure the client if configured correctly"
+        )
         return False
-        
 
 
 def authenticate_DV(url, tk):
@@ -91,7 +93,7 @@ def query_data(atr, val, session):
         .filter(Criterion("=", DataObjectMeta.value, val))
     )
     for item in qobj:
-        #lobj.append(f"{item[Collection.name]}/{item[DataObject.name]}")
+        # lobj.append(f"{item[Collection.name]}/{item[DataObject.name]}")
         obj_location = f"{item[Collection.name]}/{item[DataObject.name]}"
         obj = session.data_objects.get(obj_location)
         lobj.append(obj)
@@ -132,6 +134,7 @@ def check_identical_list_elements(list):
     returns: bool"""
     return all(i == list[0] for i in list)
 
+
 def query_dv(atr, data_object, session):
     """iRODS query to get the Dataverse installation for the data that are destined for publication if
     specified as metadata dv.installation
@@ -154,40 +157,44 @@ def query_dv(atr, data_object, session):
 
     lMD = []
     for item in data_object:
-        qMD = (session.query(Collection.name,DataObject.name, DataObjectMeta.name, DataObjectMeta.value)
-        .filter(Criterion("=", Collection.name, item.path.replace("/" + item.name, '')))
-        .filter(Criterion("=", DataObject.name, item.name))
-        .filter(Criterion("=", DataObjectMeta.name, atr))
+        qMD = (
+            session.query(
+                Collection.name,
+                DataObject.name,
+                DataObjectMeta.name,
+                DataObjectMeta.value,
+            )
+            .filter(
+                Criterion("=", Collection.name, item.path.replace("/" + item.name, ""))
+            )
+            .filter(Criterion("=", DataObject.name, item.name))
+            .filter(Criterion("=", DataObjectMeta.name, atr))
         )
         for item in qMD:
             lMD.append(f"{item[DataObjectMeta.value]}")
 
     if check_identical_list_elements(lMD):
         return lMD
-    else: 
+    else:
         print("Multiple dataverse installations found in metadata")
         return []
 
 
 def get_data_object(session, object_location):
     """do operations on the data_object
-    param: session, object path 
+    param: session, object path
     returns: obj
-    
+
     """
-    #if not session.collections.exists(object_name):
-     #   object_location = iRODSPath('ghum', 'home/datateam_ghum',
-      #                              'irods_to_dataverse', object_name)
+    # if not session.collections.exists(object_name):
+    #   object_location = iRODSPath('ghum', 'home/datateam_ghum',
+    #                              'irods_to_dataverse', object_name)
     print(object_location)
     obj = session.data_objects.get(object_location)
     print(obj.name)
     print(obj.collection)
     print(obj.path)
     return obj
-
-
-
-
 
 
 def instantiate_selected_class(installationName, config):
@@ -239,10 +246,9 @@ def setup(inp_dv, inp_tk):
     # read once the configuration file located in a hard-coded path
     config = ConfigParser()
     config.read("src/customization.ini")
-    print(config.sections)
-    # Check that the Dataverse installation installation is configured
+    # Check that the Dataverse installation is configured
     if inp_dv in config.sections():
-        print("true")
+        print("The selected Dataverse installation is configured")
         # Instantiate the Dataset class of the selected Dataverse installation
         ds = instantiate_selected_class(inp_dv, config)
         # Gen information of the instantiated class
@@ -282,10 +288,11 @@ def validate_md(ds, md):
         ds.from_json(read_file(md))
         resp = ds.validate_json()
         return resp
-    except Exception as e: #change this to specific exception
+    except Exception as e:  # change this to specific exception
         print(type(e))
         print(f"An error occurred: {e}")
         return False
+
 
 def deposit_ds(api, inp_dv, ds):
     """Create a Dataverse dataset with user specified metadata
@@ -313,10 +320,14 @@ def deposit_ds(api, inp_dv, ds):
     dsStatus = resp.json()["status"]
     dsPID = resp.json()["data"]["persistentId"]
     dsID = resp.json()["data"]["id"]
-    resp = api.create_dataset_private_url(dsPID)
-    dsPURL = resp.json()["data"]["link"]
+    # resp = api.create_dataset_private_url(dsPID) # RDR does not allow PURL creation; move to Class definition?
+    # dsPURL = resp.json()["data"]["link"]
 
-    return dsStatus, dsPID, dsID, dsPURL
+    return (
+        dsStatus,
+        dsPID,
+        dsID,
+    )  # dsPURL
 
 
 """
@@ -419,7 +430,7 @@ def save_md(item, atr, val, op):
         Metadata operation, one of "add" or "set".
     """
 
-   # obj = session.data_objects.get(f"{item}")
+    # obj = session.data_objects.get(f"{item}")
     try:
         if op == "add":
             item.metadata.apply_atomic_operations(
@@ -434,11 +445,11 @@ def save_md(item, atr, val, op):
             print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
             return True
         else:
-            print("No valid metadata operation is selected. Specify one of 'add' or 'set'.")
+            print(
+                "No valid metadata operation is selected. Specify one of 'add' or 'set'."
+            )
             return True
-    except Exception as e: #change this to specific exception
+    except Exception as e:  # change this to specific exception
         print(type(e))
         print(f"An error occurred: {e}")
         return False
-    
-
