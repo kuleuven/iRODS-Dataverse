@@ -40,7 +40,7 @@ c.print(
  A: dv.installation  V: Demo
                    """,
         style=panel_blue,
-        title="Instructions"
+        title="Instructions",
     )
 )
 
@@ -108,6 +108,8 @@ else:
     )
 
 
+# --- print a table of the selected data ---#
+
 table = Table(title="overview")
 table.add_column("id", justify="right", style="cyan", no_wrap=True)
 table.add_column("name", style="magenta")
@@ -115,15 +117,6 @@ table.add_column("size", justify="right", style="green")
 for object in data_objects_list:
     table.add_row(str(object.id), object.name, str(object.size))
 c.print(table)
-
-"""
-c.print(
-    Panel.fit(
-        f"The following objects are selected for publication:\n <{data_objects_list}>.",
-        style=panel_black,
-    )
-)
-"""
 
 
 # --- update metadata in irods for from initiated to processed & add timestamp --- #
