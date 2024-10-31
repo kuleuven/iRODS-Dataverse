@@ -286,7 +286,9 @@ def validate_md(ds, md):
     """
     try:
         ds.from_json(read_file(md))
-        resp = ds.validate_json()
+        resp = (
+            ds.validate_json()
+        )  # filename_schema = path to schema + ; with and without hidden class attributes
         return resp
     except Exception as e:  # change this to specific exception
         print(type(e))

@@ -120,7 +120,7 @@ ldv = functions.query_dv(atr_dv, data_objects_list, session)
 if len(ldv) == 0:
     print(f"{infocolor}The selected objects have no attribute <{atr_dv}>.{esccolor}")
     inp_dv = input(
-        "Specify the configured Dataverse installation to publish the data.\nType RDR or Demo\n"
+        "Specify the configured Dataverse installation to publish the data.\nType RDR, RDR-pilot, or Demo\n"
     )
     for item in data_objects_list:
         functions.save_md(item, atr_dv, inp_dv, op="set")
