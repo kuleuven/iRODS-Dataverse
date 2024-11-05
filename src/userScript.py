@@ -5,13 +5,9 @@ from os.path import expanduser
 from rich.console import Console
 from rich.style import Style
 from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.prompt import Confirm
-from rich.console import Console
+from rich.prompt import Prompt, Confirm
 from rich.table import Table
 
-
-# ---- define custom colors (Octal ANSI sequences for colors ; https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#8-16-colors)
 
 # Test with 2 files /set/home/datateam_set/iRODS2DV/20240718_demo
 # Use DVUploader and Include an option on which upload method should be chosen.
@@ -27,17 +23,18 @@ warning = Style(color="red")
 panel_blue = Style(color="white", bold=True, bgcolor="blue")
 panel_black = Style(color="white", bgcolor="black")
 
-
+# create a rich console
 c = Console()
 
-
+# print instructions for the metadata-driven process
 c.print(
     Panel.fit(
         """
- To drive the process based on metadata, go to your selected zone and     
-  add the following metadata to at least one data object:             
- A: dv.publication   V: initiated                                         
- A: dv.installation  V: Demo
+ To drive the process based on metadata, go to your selected zone 
+ and add the following metadata to at least one data object 
+ for a configured Dataverse installation (e.g. Demo):             
+    A: dv.publication   V: initiated                                         
+    A: dv.installation  V: Demo
                    """,
         style=panel_blue,
         title="Instructions",
@@ -45,7 +42,7 @@ c.print(
 )
 
 
-#  --- Provide the iRODS environment file to authenticate in a specific autzone ---#
+#  --- Provide the iRODS environment file to authenticate in a specific zone ---#
 
 print("\nAuthenticate to iRODS zone...")
 session = functions.authenticate_iRODS(
@@ -57,7 +54,7 @@ else:
     raise SystemExit
 
 
-# --- Select Data: if there is no metadata specifying the obcject that needs to be published,  ask user to provide the path --- #
+# --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
 
 print(
     "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
@@ -110,16 +107,16 @@ else:
 
 # --- print a table of the selected data ---#
 
-table = Table(title="overview")
-table.add_column("id", justify="right", style="cyan", no_wrap=True)
+table = Table(title="data object overview")
+table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
 table.add_column("name", style="magenta")
-table.add_column("size", justify="right", style="green")
+table.add_column("size (MB)", justify="right", style="green")
 for object in data_objects_list:
-    table.add_row(str(object.id), object.name, str(object.size))
+    table.add_row(f"{object.id}", f"{object.name}", f"{object.size/1000000:.2f}")
 c.print(table)
 
 
-# --- update metadata in irods for from initiated to processed & add timestamp --- #
+# --- update metadata in iRODS from initiated to processed & add timestamp --- #
 
 for item in data_objects_list:
     # Update status of publication in iRODS from 'initiated' to 'processed'
@@ -144,7 +141,7 @@ if len(ldv) == 0:
     c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
     inp_dv = Prompt.ask(
         "Specify the configured Dataverse installation to publish the data",
-        choices=["RDR", "Demo"],
+        choices=["RDR", "Demo", "RDR-pilot"],
         default="Demo",
     )
     for item in data_objects_list:
@@ -170,16 +167,14 @@ resp = functions.setup(
 ds = resp[2]
 
 c.print(
-    f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
-        The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json and for RDR at doc/metadata/mdDataset_RDR.json""",
+    f"Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n 
+    The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json",
     style=info,
 )
 md = input()
 
 
 # Validate metadata
-
-
 vmd = functions.validate_md(resp[2], md)
 while not (vmd):
     c.print(
@@ -192,22 +187,22 @@ c.print(f"The metadata are validated, the process continues.", style=info)
 
 # Deposit draft in selected Dataverse installation
 ds_md = functions.deposit_ds(resp[1][1], inp_dv, resp[2])
-print(f"The Dataset publication metadata are: {ds_md}", style=info)
+c.print(f"The Dataset publication metadata are: {ds_md}", style=info)
 
 
 for item in data_objects_list:
     # Dataset DOI
     functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
-    # Dataset PURL
-    functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
+    # # Dataset PURL
+    # functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
 
 
-print(
+c.print(
     f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
     style=info,
 )
-print(
-    f"The Dataset DOI and PURL are added as metadata to the selected data objects.",
+c.print(
+    f"The Dataset DOI is added as metadata to the selected data objects.",
     style=info,
 )
 
@@ -251,7 +246,8 @@ for item in data_objects_list:
 
 
 c.print(
-    f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects., style=info"
+    f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
+    style=info,
 )
 
 # Additional metadata could be extracted from the filled-in Dataverse metadata template (e.g. author information)
