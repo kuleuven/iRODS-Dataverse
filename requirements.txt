@@ -2,6 +2,7 @@ anyio==4.3.0
 attrs==23.2.0
 certifi==2024.2.2
 charset-normalizer==3.3.2
+configparser==7.1.0
 defusedxml==0.7.1
 evdev==1.7.1
 exceptiongroup==1.2.1

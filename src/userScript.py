@@ -16,7 +16,7 @@ from rich.table import Table
 # This script implements the perspective where the individual data objects destined for publication are either annotated with metadata or their path is provided.
 # Another perspective that could be explored is the case where the dataset is all in a pre-specified iRODS collection and the structure is mirrored in Dataverse.
 
-
+# define custom colors
 info = Style(color="cyan")
 action = Style(color="yellow")
 warning = Style(color="red")
@@ -35,6 +35,7 @@ c.print(
  for a configured Dataverse installation (e.g. Demo):             
     A: dv.publication   V: initiated                                         
     A: dv.installation  V: Demo
+The configured Dataverse installations are: Demo, RDR, RDR-pilot  
                    """,
         style=panel_blue,
         title="Instructions",
@@ -97,7 +98,7 @@ if len(data_objects_list) == 0:  # ldt = qdata
                 "",
                 style=warning,
             )
-        add = Confirm.ask("Add more objects?")
+        add = Confirm.ask("Add more objects? y/n\n")
 else:
     c.print(
         f"Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.",
@@ -106,7 +107,7 @@ else:
 
 
 # --- print a table of the selected data ---#
-
+c.print("The following objects are selected for publication:", style=info)
 table = Table(title="data object overview")
 table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
 table.add_column("name", style="magenta")
@@ -175,21 +176,21 @@ md = input()
 
 
 # Validate metadata
-vmd = functions.validate_md(resp[2], md)
+vmd = functions.validate_md(ds, md)
 while not (vmd):
     c.print(
         f"The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].",
         style=info,
     )
     md = input()
-    vmd = functions.validate_md(resp[2], md)
+    vmd = functions.validate_md(ds, md)
 c.print(f"The metadata are validated, the process continues.", style=info)
 
 # Deposit draft in selected Dataverse installation
-ds_md = functions.deposit_ds(resp[1][1], inp_dv, resp[2])
+ds_md = functions.deposit_ds(resp[1][1], ds.alias, ds)
 c.print(f"The Dataset publication metadata are: {ds_md}", style=info)
 
-
+# Add metadata in iRODS
 for item in data_objects_list:
     # Dataset DOI
     functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
