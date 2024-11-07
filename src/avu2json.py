@@ -115,10 +115,16 @@ def update_template(field, avus_as_json):
     Returns:
         dict: Filled in field to update the template with.
     """
+
     typeName = field["typeName"]
     value = field["value"]
+    #get the value from avu based on typename
     fromAvu = avus_as_json[typeName]
     typeClass = field["typeClass"]
+    #put single value in list if multiple is true
+    if field["typeClass"] == 'controlledVocabulary' and field['multiple'] == True:
+        if type(fromAvu) != list:
+            fromAvu = [fromAvu]
     if typeClass != "compound":
         field["value"] = fromAvu
     elif type(value) == list:
