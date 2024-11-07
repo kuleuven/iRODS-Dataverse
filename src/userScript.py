@@ -1,4 +1,6 @@
 import functions
+import avu2json
+import json
 import maskpass
 import datetime
 from os.path import expanduser
@@ -88,14 +90,12 @@ if len(data_objects_list) == 0:  # ldt = qdata
                 )
             else:
                 c.print(
-                    f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename"
-                    "",
+                    f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
         except Exception as e:  # change this to specific exception
             c.print(
-                f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename"
-                "",
+                f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                 style=warning,
             )
         add = Confirm.ask("Add more objects? y/n\n")
@@ -166,12 +166,45 @@ resp = functions.setup(
 )  # this function also validates that the selected Dataverse installations is configured.
 ds = resp[2]
 
-c.print(
-    f"Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n 
-    The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json",
-    style=info,
-)
-md = input()
+
+if(Confirm.ask("Are you ManGO user and have you filled in the ManGO metadata schema for your dataverse installation?\n")):
+    #get the path for the first data object in the list
+    print(data_objects_list[0])
+    logical_path = data_objects_list[0].path
+    #print(logical_path.path)
+    match inp_dv:
+        case "RDR":
+            path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
+            path_to_template = "doc/metadata/template_RDR.json"
+        case "RDR-pilot":
+            path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
+            path_to_template = "doc/metadata/template_RDR.json"
+        case "Demo":
+            path_to_schema = "doc/metadata/mango2dv-demo-1.0.0-published.json"
+            path_to_template = "doc/metadata/template_Demo.json"
+
+    #get data object
+    obj = session.data_objects.get(logical_path)
+    #get metadata
+    metadata = avu2json.parse_mango_metadata(path_to_schema, obj)
+    #get template
+    with open(path_to_template) as f:
+        template = json.load(f)
+    #fill in template
+    avu2json.fill_in_template(template, metadata)
+    #write template 
+    with open("metadata_dataset.json", "w") as f:
+        json.dump(template, f, indent=4)
+
+    md = template
+    
+else:
+    c.print(
+        f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
+        The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json""",
+        style=info,
+    )
+    md = input()
 
 
 # Validate metadata
