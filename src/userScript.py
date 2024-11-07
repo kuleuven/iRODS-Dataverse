@@ -1,6 +1,13 @@
 import functions
 import maskpass
 import datetime
+from os.path import expanduser
+from rich.console import Console
+from rich.style import Style
+from rich.panel import Panel
+from rich.prompt import Prompt, Confirm
+from rich.table import Table
+
 
 # Test with 2 files /set/home/datateam_set/iRODS2DV/20240718_demo
 # Use DVUploader and Include an option on which upload method should be chosen.
@@ -9,79 +16,120 @@ import datetime
 # This script implements the perspective where the individual data objects destined for publication are either annotated with metadata or their path is provided.
 # Another perspective that could be explored is the case where the dataset is all in a pre-specified iRODS collection and the structure is mirrored in Dataverse.
 
-# define custom ascii octal colors => TO DO: use rich instead
-esccolor = "\033[39m"  # color for the instructions, also the default color.
-actioncolor = "\033[33m"  # color for information on the actions in iRODS.
-infocolor = "\033[36m"  # color for messages related to the process, other than actions in iRODS.
+# define custom colors
+info = Style(color="cyan")
+action = Style(color="yellow")
+warning = Style(color="red")
+panel_blue = Style(color="white", bold=True, bgcolor="blue")
+panel_black = Style(color="white", bgcolor="black")
+
+# create a rich console
+c = Console()
+
+# print instructions for the metadata-driven process
+c.print(
+    Panel.fit(
+        """
+ To drive the process based on metadata, go to your selected zone 
+ and add the following metadata to at least one data object 
+ for a configured Dataverse installation (e.g. Demo):             
+    A: dv.publication   V: initiated                                         
+    A: dv.installation  V: Demo
+The configured Dataverse installations are: Demo, RDR, RDR-pilot  
+                   """,
+        style=panel_blue,
+        title="Instructions",
+    )
+)
+
+
+#  --- Provide the iRODS environment file to authenticate in a specific zone ---#
+
+print("\nAuthenticate to iRODS zone...")
+session = functions.authenticate_iRODS(
+    expanduser("~") + "/.irods/irods_environment.json"
+)
+if session:
+    c.print("You are now authenticated to iRODS", style=info)
+else:
+    raise SystemExit
+
+
+# --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
 
 print(
-    f"{infocolor}To drive the process based on metadata, go to your project and add the following metadata to at least one data object:{esccolor}"
+    "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
 )
-print("A: dv.publication  V: initiated\nA: dv.installation  V: Demo")
 
-# Provide the iRODS environment file to authenticate in a specific zone
-print("Authenticate to iRODS zone")
-session = functions.authenticate_iRODS("~/.irods/irods_environment.json")
-print(f"{infocolor}You are now authenticated to iRODS{esccolor}")
-
-# Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path
-print(
-    "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input."
-)
 atr_publish = "dv.publication"
 val = "initiated"
-qdata = functions.query_data(atr_publish, val, session)
-ldt = qdata
-if len(ldt) == 0:
-    print(
-        f"{infocolor}No metadata with attribute <{atr_publish}> and value <{val}> are found.{esccolor}"
+
+
+data_objects_list = functions.query_data(
+    atr_publish, val, session
+)  # look for data based on A = dv.publication & value = initiated
+
+if len(data_objects_list) == 0:  # ldt = qdata
+    c.print(
+        f"No metadata with attribute <{atr_publish}> and value <{val}> are found.",
+        style=info,
     )
-    inp_dt = []
     add = True
     while add:
-        print(
-            "Provide a string with the full iRODS path and name of the data object to be published in one of the configured Dataverse installations"
+        inp_i = input(
+            "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations:\n"
         )
-        inp_i = input()
-        inp_dt.append(inp_i)
-        # add metadata with dedicated attribute and value in this data object
-        functions.save_md(inp_i, atr_publish, val, session, op="set")
-        print(
-            f"{actioncolor}Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object.{esccolor}"
-        )
-        print("Add more objects? y/n")
-        cont = input()
-        if cont == "n":
-            add = False
+        try:
+            obj = session.data_objects.get(inp_i)
+            data_objects_list.append(obj)
+            if functions.save_md(obj, atr_publish, val, op="set"):
+                c.print(
+                    f"Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object."
+                )
+            else:
+                c.print(
+                    f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename"
+                    "",
+                    style=warning,
+                )
+        except Exception as e:  # change this to specific exception
+            c.print(
+                f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename"
+                "",
+                style=warning,
+            )
+        add = Confirm.ask("Add more objects? y/n\n")
 else:
-    print(
-        f"{infocolor}Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.{esccolor}"
+    c.print(
+        f"Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.",
+        style=info,
     )
-    inp_dt = ldt
-print(
-    f"{infocolor} The following objects are selected for publication:\n <{inp_dt}>.{esccolor}"
-)
 
-# Process input data list (split iRODS path and filename)
-objInfo = functions.split_obj(inp_dt)
-objPath = objInfo[0]
-objName = objInfo[1]
 
-for i in range(len(objName)):
+# --- print a table of the selected data ---#
+c.print("The following objects are selected for publication:", style=info)
+table = Table(title="data object overview")
+table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
+table.add_column("name", style="magenta")
+table.add_column("size (MB)", justify="right", style="green")
+for object in data_objects_list:
+    table.add_row(f"{object.id}", f"{object.name}", f"{object.size/1000000:.2f}")
+c.print(table)
+
+
+# --- update metadata in iRODS from initiated to processed & add timestamp --- #
+
+for item in data_objects_list:
     # Update status of publication in iRODS from 'initiated' to 'processed'
-    functions.save_md(
-        f"{objPath[i]}/{objName[i]}", atr_publish, "processed", session, op="set"
-    )
+    functions.save_md(item, atr_publish, "processed", op="set")
     # Dataset status timestamp
     functions.save_md(
-        f"{objPath[i]}/{objName[i]}",
-        "dv.publication.timestamp",
-        datetime.datetime.now(),
-        session,
-        op="set",
+        item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
     )
-print(
-    f"{infocolor}Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.{esccolor}"
+
+c.print(
+    f"Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.",
+    style=info,
 )
 
 # Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input
@@ -89,22 +137,25 @@ print(
     "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
 )
 atr_dv = "dv.installation"
-ldv = functions.query_dv(atr_dv, objPath, objName, session)
+ldv = functions.query_dv(atr_dv, data_objects_list, session)
 if len(ldv) == 0:
-    print(f"{infocolor}The selected objects have no attribute <{atr_dv}>.{esccolor}")
-    print(
-        "Specify the configured Dataverse installation to publish the data.\nType RDR or Demo"
+    c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
+    inp_dv = Prompt.ask(
+        "Specify the configured Dataverse installation to publish the data",
+        choices=["RDR", "Demo", "RDR-pilot"],
+        default="Demo",
     )
-    inp_dv = input()
-    for item in ldt:
-        functions.save_md(item, atr_dv, inp_dv, session, op="set")
-    print(
-        f"{actioncolor}Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.{esccolor}"
+    for item in data_objects_list:
+        functions.save_md(item, atr_dv, inp_dv, op="set")
+    c.print(
+        f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
+        style=action,
     )
 else:
     inp_dv = ldv[0]
-    print(
-        f"{infocolor}Metadata with attribute <{atr_dv}> and value <{inp_dv}> for the selected data objects are found in iRODS.{esccolor}"
+    c.print(
+        f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> for the selected data objects are found in iRODS.",
+        style=info,
     )
 
 # Set-up for the selected Dataverse installation
@@ -115,88 +166,88 @@ resp = functions.setup(
 )  # this function also validates that the selected Dataverse installations is configured.
 ds = resp[2]
 
-print(
-    f"{infocolor}Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json and for RDR at doc/metadata/mdDataset_RDR.json{esccolor}"
+c.print(
+    f"Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]\n 
+    The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json",
+    style=info,
 )
 md = input()
 
+
 # Validate metadata
-vmd = functions.validate_md(resp[2], md)
+vmd = functions.validate_md(ds, md)
 while not (vmd):
-    print(
-        f"{infocolor}The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].{esccolor}"
+    c.print(
+        f"The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].",
+        style=info,
     )
-    input()
-    vmd = functions.validate_md(resp[2], md)
-print(f"{infocolor}The metadata are validated, the process continues.{esccolor}")
+    md = input()
+    vmd = functions.validate_md(ds, md)
+c.print(f"The metadata are validated, the process continues.", style=info)
 
 # Deposit draft in selected Dataverse installation
-ds_md = functions.deposit_ds(resp[1][1], inp_dv, resp[2])
-print(f"{infocolor}The Dataset publication metadata are: {ds_md}{esccolor}")
+ds_md = functions.deposit_ds(resp[1][1], ds.alias, ds)
+c.print(f"The Dataset publication metadata are: {ds_md}", style=info)
 
-
-# Add dataset metadata in iRODS
-for i in range(len(objName)):
+# Add metadata in iRODS
+for item in data_objects_list:
     # Dataset DOI
-    functions.save_md(
-        f"{objPath[i]}/{objName[i]}", "dv.ds.DOI", ds_md[1], session, op="add"
-    )
-    # Dataset PURL
-    functions.save_md(
-        f"{objPath[i]}/{objName[i]}", "dv.ds.PURL", ds_md[3], session, op="set"
-    )
-print(
-    f"{infocolor}The Dataset DOI and PURL are added as metadata to the selected data objects.{esccolor}"
+    functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
+    # # Dataset PURL
+    # functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
+
+
+c.print(
+    f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
+    style=info,
+)
+c.print(
+    f"The Dataset DOI is added as metadata to the selected data objects.",
+    style=info,
 )
 
-# Upload data objects and update metadata in iRODS
-trg_path = (
-    "doc/data"  # Save data locally - TO DO: CHECK alternatives for the user script
-)
-for i in range(len(objName)):
+# ---  Save data locally <<<<< CHECK alternatives for the user script --- #
+
+trg_path = "doc/data"
+
+for item in data_objects_list:
     # Save data locally - TO DO: CHECK alternatives for the user script
-    functions.save_df(objPath[i], objName[i], trg_path, session)
-
+    functions.save_df(item, trg_path, session)
     # Upload file(s) - TO DO: add description in iRODS and specify in datafile upload
-    md = functions.deposit_df(resp[1][1], ds_md[1], objName[i], trg_path)
+    md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
     print(md)
-
     # Update status of publication in iRODS from 'processed' to 'deposited'
-    functions.save_md(
-        f"{objPath[i]}/{objName[i]}", atr_publish, "deposited", session, op="set"
-    )
+    functions.save_md(item, atr_publish, "deposited", op="set")
     # Update timestamp
     functions.save_md(
-        f"{objPath[i]}/{objName[i]}",
-        "dv.publication.timestamp",
-        datetime.datetime.now(),
-        session,
-        op="set",
+        item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
     )
 
-    # # Extract relevant datafile metadata - TO DO
-    # df_id = functions.extract_atr(f"{md}", "id")
-    # df_md5 = functions.extract_atr(f"{md}", "md5")
-    # df_storID = functions.extract_atr(f"{md}", "storageIdentifier")
 
-    # # Add metadata in iRODS
-    # functions.save_md(
-    #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
-    # )
-    # functions.save_md(
-    #     f"{objPath[i]}/{objName[i]}", "dv.df.md5", df_md5, session, op="set"
-    # )
-    # functions.save_md(
-    #     f"{objPath[i]}/{objName[i]}",
-    #     "dv.df.storageIdentifier",
-    #     df_storID,
-    #     session,
-    #     op="set",
-    # )
+# # Extract relevant datafile metadata - TO DO
+# df_id = functions.extract_atr(f"{md}", "id")
+# df_md5 = functions.extract_atr(f"{md}", "md5")
+# df_storID = functions.extract_atr(f"{md}", "storageIdentifier")
+
+# # Add metadata in iRODS
+# functions.save_md(
+#     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
+# )
+# functions.save_md(
+#     f"{objPath[i]}/{objName[i]}", "dv.df.md5", df_md5, session, op="set"
+# )
+# functions.save_md(
+#     f"{objPath[i]}/{objName[i]}",
+#     "dv.df.storageIdentifier",
+#     df_storID,
+#     session,
+#     op="set",
+# )
 
 
-print(
-    f"{infocolor}Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.{esccolor}"
+c.print(
+    f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
+    style=info,
 )
 
 # Additional metadata could be extracted from the filled-in Dataverse metadata template (e.g. author information)
