@@ -1,0 +1,36 @@
+{
+    "status": "OK",
+    "message": {
+        "message": "This file has the same content as upload that is in the dataset. "
+    },
+    "data": {
+        "files": [
+            {
+                "description": "",
+                "label": "upload-36",
+                "restricted": false,
+                "version": 1,
+                "datasetVersionId": 259491,
+                "dataFile": {
+                    "id": 2384672,
+                    "persistentId": "",
+                    "filename": "upload-36",
+                    "contentType": "text/plain; charset=US-ASCII",
+                    "friendlyType": "Plain Text",
+                    "filesize": 147,
+                    "description": "",
+                    "storageIdentifier": "s3://demo-dataverse-org:1920bbccc71-50d37c6d6725",
+                    "rootDataFileId": -1,
+                    "md5": "c5c1518cbbac4c3c952a8eb98198f1d0",
+                    "checksum": {
+                        "type": "MD5",
+                        "value": "c5c1518cbbac4c3c952a8eb98198f1d0"
+                    },
+                    "tabularData": false,
+                    "creationDate": "2024-09-19",
+                    "fileAccessRequest": false
+                }
+            }
+        ]
+    }
+}
