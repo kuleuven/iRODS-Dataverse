@@ -1,5 +1,5 @@
-import functions
-import avu2json
+from irods2dataverse import functions
+from irods2dataverse import avu2json
 import json
 import maskpass
 import datetime
