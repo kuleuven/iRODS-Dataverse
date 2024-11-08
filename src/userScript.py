@@ -167,37 +167,41 @@ resp = functions.setup(
 ds = resp[2]
 
 
-if(Confirm.ask("Are you ManGO user and have you filled in the ManGO metadata schema for your dataverse installation?\n")):
-    #get the path for the first data object in the list
+if Confirm.ask(
+    "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
+):
+    # get the path for the first data object in the list
     print(data_objects_list[0])
-    logical_path = data_objects_list[0].path
-    #print(logical_path.path)
+    logical_path = data_objects_list[
+        0
+    ].path  # check the metadata only from the first object in the list
+    # print(logical_path.path)
     match inp_dv:
         case "RDR":
             path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
             path_to_template = "doc/metadata/template_RDR.json"
         case "RDR-pilot":
             path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_RDR.json"
+            path_to_template = "doc/metadata/template_RDR-pilot.json"
         case "Demo":
             path_to_schema = "doc/metadata/mango2dv-demo-1.0.0-published.json"
             path_to_template = "doc/metadata/template_Demo.json"
 
-    #get data object
+    # get data object
     obj = session.data_objects.get(logical_path)
-    #get metadata
+    # get metadata
     metadata = avu2json.parse_mango_metadata(path_to_schema, obj)
-    #get template
+    # get template
     with open(path_to_template) as f:
         template = json.load(f)
-    #fill in template
+    # fill in template
     avu2json.fill_in_template(template, metadata)
-    #write template 
+    # write template
     with open("metadata_dataset.json", "w") as f:
         json.dump(template, f, indent=4)
 
     md = template
-    
+
 else:
     c.print(
         f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
