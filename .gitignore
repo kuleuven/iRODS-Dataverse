@@ -1,0 +1,5 @@
+/src/.ipynb_checkpoints/
+/venv/
+src/__pycache__/
+src/avu2json/__pycache__/
+src/tests/__pycache__/

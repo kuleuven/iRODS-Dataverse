@@ -1,5 +1,5 @@
 {
-  "schema_name": "mango2dv-demo",
+  "schema_name": "mango2dv-rdr",
   "version": "1.0.0",
   "status": "published",
   "properties": {
@@ -51,7 +51,7 @@
           "type": "text",
           "placeholder": "",
           "pattern": "",
-          "required": false,
+          "required": true,
           "help": "The point of contact's email address"
         }
       },
@@ -75,33 +75,51 @@
       "repeatable": true,
       "help": "A summary describing the purpose, nature, and scope of the Dataset"
     },
-    "subject": {
-      "title": "Subject",
-      "type": "select",
-      "values": [
-        "Agricultural Sciences",
-        "Arts and Humanities",
-        "Astronomy and Astrophysics",
-        "Business and Management",
-        "Chemistry",
-        "Computer and Information Science",
-        "Earth and Environmental Sciences",
-        "Engineering",
-        "Law",
-        "Mathematical Sciences",
-        "Medicine, Health and Life Sciences",
-        "Physics",
-        "Social Sciences",
-        "Other",
-        "Demo Only"
-      ],
-      "multiple": true,
-      "ui": "checkbox",
-      "help": "The area of study relevant to the Dataset"
+    "keyword": {
+      "title": "Keyword",
+      "properties": {
+        "keywordValue": {
+          "title": "Keyword",
+          "type": "text",
+          "placeholder": "",
+          "pattern": "",
+          "required": true
+        }
+      },
+      "type": "object",
+      "repeatable": true,
+      "help": "A keyword to help find the dataset."
+    },
+    "technicalFormat": {
+      "title": "File types",
+      "type": "text",
+      "placeholder": "csv, tiff, pdf...",
+      "pattern": "",
+      "required": true
+    },
+    "access": {
+      "title": "Keyword",
+      "properties": {
+        "accessRights": {
+          "title": "Access Rights",
+          "type": "select",
+          "values": [
+            "open",
+            "restricted",
+            "embargoed",
+            "closed"
+          ],
+          "multiple": false,
+          "ui": "radio"
+        }
+      },
+      "type": "object",
+      "repeatable": false,
+      "help": "Access rights to the dataset."
     }
   },
-  "edited_by": "u0112360",
+  "edited_by": "u0118974",
   "realm": "datateam_set",
-  "title": "ManGO Dataset to Dataverse Demo",
-  "parent": ""
+  "title": "ManGO Dataset to RDR",
+  "parent": "mango2dv-demo-1.0.0"
 }
