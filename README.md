@@ -27,6 +27,11 @@ After the virtual environment is activated run:
 $ python src/userScript.py
 ```
 
+Visual overview of the pipeline options:
+
+<img src="./doc/img/20241108_pipeline_options.png" alt="overview-pipeline-options" style="height: 536px; width: 635px;"/>
+
+
 ## avu2json: Convert iRODS AVU or normal dictionary to Dataverse metadata
 
 The JSON to send to Dataverse metadata is quite complex (e.g. [template_Demo.json](./doc/metadata/template_Demo.json)), so we would like our users to be able to input the metadata of the dataset more easily.
