@@ -1,5 +1,6 @@
 import unittest
-from avu2json import *
+import os.path
+from irods2dataverse.avu2json import *
 
 
 class TestFieldTransformation(unittest.TestCase):
@@ -21,7 +22,9 @@ class TestFieldTransformation(unittest.TestCase):
             "subject": ["Demo Only"],
             "title": "Minimum Viable Workflow - 16 May 2024",
         }
-        self.schema_demo_path = "../doc/metadata/mango2dv-demo-1.0.0-published.json"
+        self.schema_demo_path = os.path.join(
+            os.path.dirname(__file__), "resources", "mango2dv-demo-1.0.0-published.json"
+        )
 
     def test_validation(self):
         validated_metadata = parse_json_metadata(
@@ -37,9 +40,10 @@ class TestFieldTransformation(unittest.TestCase):
             "typeName": "title",
         }
         new_title = update_template(title_template, self.metadatadict)
-        self.assertEqual(title_template["typeClass"], new_title["typeClass"])
-        self.assertEqual(title_template["multiple"], new_title["multiple"])
-        self.assertEqual(title_template["typeName"], new_title["typeName"])
+
+        for property in ["typeClass", "multiple", "typeName"]:
+            with self.subTest(property=property):
+                self.assertEqual(title_template[property], new_title[property])
         self.assertEqual(self.metadatadict["title"], new_title["value"])
 
     def test_fill_in_composite_field(self):
@@ -65,21 +69,26 @@ class TestFieldTransformation(unittest.TestCase):
             "typeName": "author",
         }
         new_author = update_template(author_template, self.metadatadict)
-        self.assertEqual(author_template["typeClass"], new_author["typeClass"])
-        self.assertEqual(author_template["multiple"], new_author["multiple"])
-        self.assertEqual(author_template["typeName"], new_author["typeName"])
+        for property in ["typeClass", "multiple", "typeName"]:
+            with self.subTest(property=property):
+                self.assertEqual(author_template[property], new_author[property])
 
         original_authorname = author_template["value"][0]["authorName"]
         new_authorname = new_author["value"][0]["authorName"]
-        self.assertEqual(original_authorname["typeClass"], new_authorname["typeClass"])
-        self.assertEqual(original_authorname["multiple"], new_authorname["multiple"])
-        self.assertEqual(original_authorname["typeName"], new_authorname["typeName"])
+        for property in ["typeClass", "multiple", "typeName"]:
+            with self.subTest(property=property):
+                self.assertEqual(
+                    original_authorname[property], new_authorname[property]
+                )
         self.assertEqual(
             self.metadatadict["author"]["authorName"], new_authorname["value"]
         )
 
     def test_rewriting_template(self):
-        demo_template = extract_template("../doc/metadata/template_Demo.json")
+        template_path = os.path.join(
+            os.path.dirname(__file__), "resources", "template_Demo.json"
+        )
+        demo_template = extract_template(template_path)
         self.assertIsInstance(demo_template, dict)
 
         fields = demo_template["datasetVersion"]["metadataBlocks"]["citation"]["fields"]
