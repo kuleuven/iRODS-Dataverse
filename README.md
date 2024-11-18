@@ -29,7 +29,7 @@ $ python src/userScript.py
 
 Visual overview of the pipeline options:
 
-<img src="./doc/img/20241108_pipeline_options.png" alt="overview-pipeline-options" style="height: 536px; width: 635px;"/>
+<img src="./doc/img/20241108_pipeline_options.png" alt="overview-pipeline-options" style="height: 794px; width: 728px;"/>
 
 
 ## avu2json: Convert iRODS AVU or normal dictionary to Dataverse metadata
