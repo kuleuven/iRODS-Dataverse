@@ -215,7 +215,8 @@ def instantiate_selected_class(installationName, config):
 
     config_section = config[installationName]
     modulename, classname = config_section["className"].split(".", 2)
-    module = __import__(modulename)
+    importlib = __import__("importlib")
+    module = importlib.import_module(f"irods2dataverse.{modulename}")
     selectedClass = getattr(module, classname)
 
     return selectedClass()
@@ -245,7 +246,7 @@ def setup(inp_dv, inp_tk):
 
     # read once the configuration file located in a hard-coded path
     config = ConfigParser()
-    config.read("src/customization.ini")
+    config.read("src/irods2dataverse/customization.ini")
     # Check that the Dataverse installation is configured
     if inp_dv in config.sections():
         print("The selected Dataverse installation is configured")
