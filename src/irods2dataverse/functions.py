@@ -11,6 +11,7 @@ from pyDataverse.utils import read_file
 from configparser import ConfigParser
 import irods.keywords as kw
 import hashlib
+from irods2dataverse.avu2json import fill_in_template
 
 
 def authenticate_iRODS(env_path):
@@ -254,12 +255,12 @@ def setup(inp_dv, inp_tk):
         ds = instantiate_selected_class(inp_dv, config)
         # Gen information of the instantiated class
         BASE_URL = ds.baseURL
-        mdPath = ds.metadataTemplate
+        mdPath = ds.metadata_template
         # Authenticate to Dataverse installation
         resp = authenticate_DV(BASE_URL, inp_tk)
         if resp[0] == 200:
             # If the user is authenticated, direct to the minimum metadata of the selected Dataverse installation
-            msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}."
+            msg = f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {mdPath}."
         else:
             msg = "The authentication to the selected Dataverse installation failed."
     else:
@@ -285,8 +286,12 @@ def validate_md(ds, md):
     resp : bool
         It is `True` if the metadata template fits the Dataverse expectations and `False` if it does not.
     """
+    if isinstance(md, str):
+        md = read_file(md)
+    elif isinstance(md, dict):
+        md = json.dumps(md)
     try:
-        ds.from_json(read_file(md))
+        ds.from_json(md)
         resp = (
             ds.validate_json()
         )  # filename_schema = path to schema + ; with and without hidden class attributes
@@ -456,3 +461,25 @@ def save_md(item, atr, val, op):
         print(type(e))
         print(f"An error occurred: {e}")
         return False
+
+
+def get_template(path_to_template, metadata):
+    """Turn a metadata dictionary into a .
+
+    Parameters
+    ----------
+    path_to_template : str
+        The path to the original template
+    metadata : dict
+        A simplified dictionary with metadata
+
+    Returns
+    -------
+    template: dict
+        A complete template as dictionary
+    """
+    with open(path_to_template) as f:
+        template = json.load(f)
+    # fill in template
+    fill_in_template(template, metadata)
+    return template
