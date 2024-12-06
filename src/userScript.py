@@ -171,10 +171,7 @@ if Confirm.ask(
     "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
 ):
     # get the path for the first data object in the list
-    print(data_objects_list[0])
-    logical_path = data_objects_list[
-        0
-    ].path  # check the metadata only from the first object in the list
+    # check the metadata only from the first object in the list
     # print(logical_path.path)
     match inp_dv:
         case "RDR":
@@ -188,7 +185,7 @@ if Confirm.ask(
             path_to_template = "doc/metadata/template_Demo.json"
 
     # get data object
-    obj = session.data_objects.get(logical_path)
+    obj = session.data_objects.get(data_objects_list[0].path)
     # get metadata
     metadata = avu2json.parse_mango_metadata(path_to_schema, obj)
     # get template
@@ -200,15 +197,16 @@ if Confirm.ask(
     with open("metadata_dataset.json", "w") as f:
         json.dump(template, f, indent=4)
 
-    md = template
+    md = "metadata_dataset.json"
 
 else:
-    c.print(
+
+    md = Prompt.ask(
         f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
-        The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json""",
-        style=info,
+The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json""",
+        choices=["doc/metadata/mdDataset_RDR.json", "doc/metadata/mdDataset_Demo.json"],
+        default="doc/metadata/mdDataset_Demo.json",
     )
-    md = input()
 
 
 # Validate metadata
