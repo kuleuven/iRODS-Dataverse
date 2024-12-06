@@ -129,14 +129,7 @@ def split_obj(obj):
     return objPath, objName
 
 
-def check_identical_list_elements(list):
-    """check if all elements in a list are identical
-    param: list
-    returns: bool"""
-    return all(i == list[0] for i in list)
-
-
-def query_dv(atr, data_object, session):
+def query_dv(atr, data_object, installations):
     """iRODS query to get the Dataverse installation for the data that are destined for publication if
     specified as metadata dv.installation
 
@@ -144,10 +137,10 @@ def query_dv(atr, data_object, session):
     ----------
     atr: str
       the metadata attribute describing the Dataverse installation
-    objPath: list
-      iRODS path of each data object for publication
-    objName: list
-      Filename of each data object for publication
+    data_object: irods.DataObject
+      Data object to get info from
+    installations: list
+      List of possible installations
     session: iRODS session
 
     Returns
@@ -155,30 +148,21 @@ def query_dv(atr, data_object, session):
     lMD: list
       list of metadata values for the given attribute
     """
-
-    lMD = []
+    installations_dict = {k: [] for k in installations}
+    installations_dict["missing"] = []
     for item in data_object:
-        qMD = (
-            session.query(
-                Collection.name,
-                DataObject.name,
-                DataObjectMeta.name,
-                DataObjectMeta.value,
-            )
-            .filter(
-                Criterion("=", Collection.name, item.path.replace("/" + item.name, ""))
-            )
-            .filter(Criterion("=", DataObject.name, item.name))
-            .filter(Criterion("=", DataObjectMeta.name, atr))
-        )
-        for item in qMD:
-            lMD.append(f"{item[DataObjectMeta.value]}")
+        md_installations = [
+            x.value
+            for x in data_object.metadata.get_all(atr)
+            if x.value in installations_dict
+        ]
+        if len(md_installations) == 1:
+            installations_dict[md_installations[0]].append(item)
+        elif len(md_installations) == 0:
+            installations_dict["missing"].append(item)
+        # if there are too many installations, the object is ignored
 
-    if check_identical_list_elements(lMD):
-        return lMD
-    else:
-        print("Multiple dataverse installations found in metadata")
-        return []
+    return {k: v for k, v in installations_dict if len(v) > 0}
 
 
 def get_data_object(session, object_location):

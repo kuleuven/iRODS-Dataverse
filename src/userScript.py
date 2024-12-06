@@ -137,26 +137,41 @@ print(
     "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
 )
 atr_dv = "dv.installation"
-ldv = functions.query_dv(atr_dv, data_objects_list, session)
-if len(ldv) == 0:
-    c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
-    inp_dv = Prompt.ask(
-        "Specify the configured Dataverse installation to publish the data",
-        choices=["RDR", "Demo", "RDR-pilot"],
-        default="Demo",
-    )
-    for item in data_objects_list:
-        functions.save_md(item, atr_dv, inp_dv, op="set")
-    c.print(
-        f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
-        style=action,
-    )
-else:
-    inp_dv = ldv[0]
+installations = ["RDR", "Demo", "RDR-pilot"]
+ldv = functions.query_dv(atr_dv, data_objects_list, installations)
+if len(ldv) == 1 and "missing" not in ldv:
+    inp_dv = list(ldv.keys())[0]
     c.print(
         f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> for the selected data objects are found in iRODS.",
         style=info,
     )
+else:
+    if len(ldv) > 1:
+        c.print(f"Not all the data objects are assigned to the same installation.")
+    else:
+        c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
+    data_objects_list = []
+    inp_dv = Prompt.ask(
+        "Specify the configured Dataverse installation to publish the data",
+        choices=installations,
+        default="Demo",
+    )
+    if inp_dv in ldv:
+        data_objects_list = ldv[inp_dv]
+        c.print(f"{len(ldv[inp_dv])} items were tagged for this installation.")
+    if "missing" in ldv:
+        add_missing = Confirm.ask(
+            f"{len(ldv['missing'])} items were tagged with no installation. Would you like to include them?"
+        )
+        if add_missing:
+            for item in ldv["missing"]:
+                functions.save_md(item, atr_dv, inp_dv, op="set")
+                data_objects_list.append(item)
+            c.print(
+                f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
+                style=action,
+            )
+
 
 # Set-up for the selected Dataverse installation
 print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
