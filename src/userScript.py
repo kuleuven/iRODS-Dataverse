@@ -175,10 +175,8 @@ path_to_template = ds.metadata_template
 if Confirm.ask(
     "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
 ):
-    # get data object
-    obj = session.data_objects.get(data_objects_list[0].path)
     # get metadata
-    metadata = avu2json.parse_mango_metadata(path_to_schema, obj)
+    metadata = avu2json.parse_mango_metadata(path_to_schema, data_objects_list[0])
     # get template
     md = functions.get_template(path_to_template, metadata)
 
