@@ -3,7 +3,7 @@ from irods2dataverse import avu2json
 import json
 import maskpass
 import datetime
-from os.path import expanduser
+import os.path
 from rich.console import Console
 from rich.style import Style
 from rich.panel import Panel
@@ -49,7 +49,7 @@ The configured Dataverse installations are: Demo, RDR, RDR-pilot
 
 print("\nAuthenticate to iRODS zone...")
 session = functions.authenticate_iRODS(
-    expanduser("~") + "/.irods/irods_environment.json"
+    os.path.expanduser("~") + "/.irods/irods_environment.json"
 )
 if session:
     c.print("You are now authenticated to iRODS", style=info)
@@ -166,48 +166,40 @@ resp = functions.setup(
 )  # this function also validates that the selected Dataverse installations is configured.
 ds = resp[2]
 
+# get the path for the first data object in the list
+# check the metadata only from the first object in the list
+# print(logical_path.path)
+path_to_schema = ds.mango_schema
+path_to_template = ds.metadata_template
 
 if Confirm.ask(
     "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
 ):
-    # get the path for the first data object in the list
-    # check the metadata only from the first object in the list
-    # print(logical_path.path)
-    match inp_dv:
-        case "RDR":
-            path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_RDR.json"
-        case "RDR-pilot":
-            path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_RDR-pilot.json"
-        case "Demo":
-            path_to_schema = "doc/metadata/mango2dv-demo-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_Demo.json"
-
     # get data object
     obj = session.data_objects.get(data_objects_list[0].path)
     # get metadata
     metadata = avu2json.parse_mango_metadata(path_to_schema, obj)
     # get template
-    with open(path_to_template) as f:
-        template = json.load(f)
-    # fill in template
-    avu2json.fill_in_template(template, metadata)
-    # write template
-    with open("metadata_dataset.json", "w") as f:
-        json.dump(template, f, indent=4)
-
-    md = "metadata_dataset.json"
+    md = functions.get_template(path_to_template, metadata)
 
 else:
-
-    md = Prompt.ask(
-        f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
-The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json""",
-        choices=["doc/metadata/mdDataset_RDR.json", "doc/metadata/mdDataset_Demo.json"],
-        default="doc/metadata/mdDataset_Demo.json",
-    )
-
+    md = ""
+    while not os.path.exists(md):
+        md = Prompt.ask(
+            f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be a simplified version.""",
+            default=path_to_template,
+        )
+    with open(md, "r") as f:
+        try:
+            md_contents = json.load(f)
+        except:
+            raise IOError("The file could not be read. Is this a valid JSON?")
+        if "datasetVersion" not in md_contents:
+            try:
+                metadata = avu2json.parse_json_metadata(path_to_schema, md_contents)
+                md = functions.get_template(path_to_template, metadata)
+            except:
+                raise ValueError("The JSON is not in the correct format.")
 
 # Validate metadata
 vmd = functions.validate_md(ds, md)
