@@ -167,6 +167,10 @@ resp = functions.setup(
 ds = resp[2]
 
 
+# Create information to pass on the header for direct upload
+headers = functions.create_headers(token)
+
+
 if Confirm.ask(
     "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
 ):
@@ -204,7 +208,11 @@ else:
     md = Prompt.ask(
         f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
 The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json""",
-        choices=["doc/metadata/mdDataset_RDR.json", "doc/metadata/mdDataset_Demo.json"],
+        choices=[
+            "doc/metadata/mdDataset_RDR.json",
+            "doc/metadata/mdDataset_RDR-pilot.json",
+            "doc/metadata/mdDataset_Demo.json",
+        ],
         default="doc/metadata/mdDataset_Demo.json",
     )
 
@@ -245,18 +253,35 @@ c.print(
 
 trg_path = "doc/data"
 
-for item in data_objects_list:
-    # Save data locally - TO DO: CHECK alternatives for the user script
-    functions.save_df(item, trg_path, session)
-    # Upload file(s) - TO DO: add description in iRODS and specify in datafile upload
-    md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
-    print(md)
-    # Update status of publication in iRODS from 'processed' to 'deposited'
-    functions.save_md(item, atr_publish, "deposited", op="set")
-    # Update timestamp
-    functions.save_md(
-        item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
-    )
+if inp_dv == "Demo":
+    ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
+    for item in data_objects_list:
+        # Save data locally
+        functions.save_df(item, trg_path, session)  # download object locally
+        # Upload file(s)
+        md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
+        print(md)
+        # Update status of publication in iRODS from 'processed' to 'deposited'
+        functions.save_md(item, atr_publish, "deposited", op="set")
+        # Update timestamp
+        functions.save_md(
+            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        )
+else:
+    ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
+    for item in data_objects_list:
+        obj = session.data_objects.get(item.path)  # repetition
+        objInfo = functions.get_object_info(obj)
+        du_step1 = functions.get_du_url(ds.baseURL, ds_md[1], objInfo[2], headers[0])
+        du_step2 = functions.put_in_s3(obj, du_step1[1], headers[1])
+        md_dict = functions.create_du_md(du_step1[0], obj, du_step1[1], du_step1[2])
+        du_step3 = functions.post_to_ds(obj, ds.baseURL, ds_md[1], headers[0])
+        # Update status of publication in iRODS from 'processed' to 'deposited'
+        functions.save_md(item, atr_publish, "deposited", op="set")
+        # Update timestamp
+        functions.save_md(
+            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        )
 
 
 # # Extract relevant datafile metadata - TO DO

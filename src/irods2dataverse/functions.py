@@ -1,10 +1,13 @@
 import os
 import json
+import magic
+import requests
 from irods.session import iRODSSession
 from irods.path import iRODSPath
 from irods.meta import iRODSMeta, AVUOperation
 from irods.column import Criterion
 from irods.models import Collection, DataObject, DataObjectMeta
+from irods.data_object import iRODSDataObject
 from pyDataverse.api import NativeApi
 from pyDataverse.models import Datafile
 from pyDataverse.utils import read_file
@@ -93,15 +96,14 @@ def query_data(atr, val, session):
         .filter(Criterion("=", DataObjectMeta.value, val))
     )
     for item in qobj:
-        # lobj.append(f"{item[Collection.name]}/{item[DataObject.name]}")
         obj_location = f"{item[Collection.name]}/{item[DataObject.name]}"
-        obj = session.data_objects.get(obj_location)
+        obj: iRODSDataObject = session.data_objects.get(obj_location)
         lobj.append(obj)
     lobj = list(set(lobj))
     return lobj  # qobj
 
 
-def split_obj(obj):
+def split_obj(obj):  # not used
     """Split input in path and filename.
 
     Parameters
@@ -181,20 +183,88 @@ def query_dv(atr, data_object, session):
 
 
 def get_data_object(session, object_location):
-    """do operations on the data_object
-    param: session, object path
-    returns: obj
+    """Operations on the data_object
+
+    Parameters
+    ----------
+    session: iRODS session
+    object_location: str
+      iRODS path of each data object for publication
+
+    Returns
+    -------
+    obj: iRODSDataObject
+      the object meant for publication
 
     """
-    # if not session.collections.exists(object_name):
-    #   object_location = iRODSPath('ghum', 'home/datateam_ghum',
-    #                              'irods_to_dataverse', object_name)
     print(object_location)
     obj = session.data_objects.get(object_location)
-    print(obj.name)
-    print(obj.collection)
-    print(obj.path)
+    # print(obj.name)
+    # print(obj.collection)
+    # print(obj.path)
+
     return obj
+
+
+def get_object_info(obj):
+    """Retrieve object information for direct upload.
+
+    Parameters
+    ----------
+    obj: iRODSDataObject
+      the object meant for publication
+
+    Returns
+    -------
+    objChecksum: str
+      SHA-256 checksum value of iRODS object
+    objMimetype: str
+      mimetype of iRODS object
+    objSize: str
+      size of iRODS object
+    """
+
+    # Get the checksum value from iRODS
+    chksumRes = obj.chksum()
+    objChecksum = chksumRes[5:]  # this is algorithm-specific
+
+    # Get the mimetype (from paul, mango portal)
+    with obj.open("r") as f:
+        blub = f.read(50 * 1024)
+        objMimetype = magic.from_buffer(blub, mime=True)
+
+    # Get the size of the object
+    objSize = obj.size + 1  # add 1 byte
+
+    return objChecksum, objMimetype, objSize
+
+
+def create_headers(token):
+    """Create information to pass on the header for direct upload
+
+    Parameters
+    ----------
+    token: str
+      the Dataverse token given by the user
+
+    Returns
+    -------
+    header_key: dict
+      the token used in direct upload step-1 and step-3
+    header_ct: dict
+      the content type for data transmission used in direct upload step-2
+    """
+
+    # create headers with Dataverse token: used in step-1 and step-3
+    header_key = {
+        "X-Dataverse-key": token,
+    }
+    # create headers with content type for data transmission: used in step-2
+    header_ct = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    return header_key, header_ct
 
 
 def instantiate_selected_class(installationName, config):
@@ -271,7 +341,7 @@ def setup(inp_dv, inp_tk):
 
 
 def validate_md(ds, md):
-    """Validate that the metadata template is up-to-date [NOTE: In its current state this function is not needed]
+    """Validate that the metadata template is up-to-date
 
     Parameters
     ----------
@@ -333,15 +403,146 @@ def deposit_ds(api, inp_dv, ds):
     )  # dsPURL
 
 
-"""
-def checksum(f):
-    md5 = hashlib.md5()    
-    md5.update(open(f).read())
-    return md5.hexdigest()
+def get_du_url(BASE_URL, dv_ds_DOI, df_size, header_key):
+    """GET request for direct upload
 
-def is_contents_same(f1, f2):
-    return checksum(f1) == checksum(f2)
-"""
+    Parameters
+    ----------
+    BASE_URL: str
+      class attribute baseURL
+    dv_ds_DOI: str
+      Dataset Persistent Identifier
+    objSize: str
+      size of iRODS object
+    header_key: dict
+      the token used in direct upload
+
+    Returns
+    -------
+    response1: json
+      json response of GET request for direct upload
+    fileURL: str
+      Dataverse URL for the iRODS object meant for publication
+    strorageID: str
+      Dataverse storage identified
+    """
+
+    # request file direct upload
+    response1 = requests.get(
+        f"{BASE_URL}/api/datasets/:persistentId/uploadurls?persistentId={dv_ds_DOI}&size={df_size}",
+        headers=header_key,
+    )
+    # # verify status
+    # print(str(response1))  # <Response [200]> ==> for user script
+    # save the url
+    fileURL = response1.json()["data"]["url"]
+    strorageID = response1.json()["data"]["storageIdentifier"]
+
+    return response1, fileURL, strorageID
+
+
+def put_in_s3(obj, fileURL, headers_ct):
+    """PUT request for direct upload
+
+    Parameters
+    ----------
+    obj: iRODSDataObject
+      the object meant for publication
+    fileURL: str
+      Dataverse URL for the iRODS object meant for publication
+    headers_ct: dict
+      the content type for data transmission used in direct upload step-2
+
+    Returns
+    -------
+    response2: json
+      json response of PUT request for direct upload
+    """
+
+    # open the iRODS object
+    data = obj.open("r")
+    # PUT the file in S3
+    response2 = requests.put(
+        fileURL,
+        headers=headers_ct,
+        data=data,
+    )
+    # close the iRODS file
+    data.close()
+    # # verify status
+    # print(str(response2))  # <Response [200]>  ==> for user script
+
+    return response2
+
+
+def create_du_md(response1, obj, objMimetype, objChecksum):
+    """Create direct upload metadata dictionary
+
+    Parameters
+    ----------
+    response1: json
+      json response of GET request for direct upload
+    obj: iRODSDataObject
+      the object meant for publication
+    objMimetype: str
+      mimetype of iRODS object
+    objSize: str
+      size of iRODS object
+
+    Returns
+    -------
+    obj_md_dict: dict
+      the metadata dictionary for the file meant for publication
+    """
+
+    obj_md_dict = {
+        "description": "This is the description of the directly uploaded file.",  # TO DO: get from iRODS metadata
+        "directoryLabel": "data/subdir1",  # TO DO: get from iRODS, based on the path of the file in a dataset
+        "categories": ["Data"],
+        "restrict": "false",
+        "storageIdentifier": response1.json()["data"]["storageIdentifier"],
+        "fileName": obj.name,
+        "mimeType": objMimetype,
+        "checksum": {"@type": "SHA-256", "@value": objChecksum},
+    }
+
+    return obj_md_dict
+
+
+def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
+    """POST request for direct upload
+
+    Parameters
+    ----------
+    obj_md_dict: dict
+      the metadata dictionary for the file meant for publication
+    BASE_URL: str
+      class attribute baseURL
+    dv_ds_DOI: str
+      Dataset Persistent Identifier
+    header_key: dict
+      the token used in direct upload
+
+    Returns
+    -------
+    response3:  json
+      json response of POST request for direct upload
+    """
+
+    # create a dictionary for jsonData
+    files = {
+        "jsonData": (None, f"{obj_md_dict}"),
+    }
+    # send the POST request
+    response3 = requests.post(
+        f"{BASE_URL}/api/datasets/:persistentId/add?persistentId={dv_ds_DOI}",
+        headers=header_key,
+        files=files,
+    )
+    # # verify status
+    # print(str(response3))  # <Response [200]> ==> for user script
+
+    return response3
 
 
 def save_df(data_object, trg_path, session):
@@ -359,6 +560,15 @@ def save_df(data_object, trg_path, session):
     """
     opts = {kw.FORCE_FLAG_KW: True}
     # TO DO: checksum in case download is not needed?
+    """
+    def checksum(f):
+        md5 = hashlib.md5()    
+        md5.update(open(f).read())
+        return md5.hexdigest()
+
+    def is_contents_same(f1, f2):
+        return checksum(f1) == checksum(f2)
+    """
     session.data_objects.get(data_object.path, f"{trg_path}/{data_object.name}", **opts)
 
 
@@ -433,7 +643,6 @@ def save_md(item, atr, val, op):
         Metadata operation, one of "add" or "set".
     """
 
-    # obj = session.data_objects.get(f"{item}")
     try:
         if op == "add":
             item.metadata.apply_atomic_operations(
