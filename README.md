@@ -10,21 +10,25 @@ This is an implementation for programmatic publication of data from iRODS into a
 
 
 ## Set up the virtual environment
-```
-$ python -m venv venv
-$ source venv/bin/activate
-$ pip install -r requirements.txt
+
+```sh
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 When finished, deactivate the virtual environment
-```
-$ deactivate
+
+```sh
+deactivate
 ```
 
 ## User script
+
 After the virtual environment is activated run:
-```
-$ python src/userScript.py
+
+```sh
+python src/userScript.py
 ```
 
 Visual overview of the pipeline options:
