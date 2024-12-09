@@ -43,7 +43,7 @@ def authenticate_iRODS(env_path):
         return session
     else:
         print(
-            "The environment file does not exist please make sure the client if configured correctly"
+            "The environment file does not exist please make sure the client is configured correctly"
         )
         return False
 
