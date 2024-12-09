@@ -176,10 +176,9 @@ else:
 # --- Set-up for the selected Dataverse installation --- #
 print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
 token = maskpass.askpass(prompt="", mask="*")
-resp = functions.setup(
+api, ds = functions.setup(
     inp_dv, token
 )  # this function also validates that the selected Dataverse installations is configured.
-ds = resp[2]
 
 # get the path for the first data object in the list
 # check the metadata only from the first object in the list
@@ -188,7 +187,7 @@ path_to_schema = ds.mango_schema
 path_to_template = ds.metadata_template
 
 # --- Create information to pass on the header for direct upload --- #
-headers = functions.create_headers(token)
+header_key, header_ct = functions.create_headers(token)
 
 
 # --- Retrieve filled-in metadata --- #
@@ -231,15 +230,18 @@ while not (vmd):
 c.print(f"The metadata are validated, the process continues.", style=info)
 
 # --- Deposit draft in selected Dataverse installation --- #
-ds_md = functions.deposit_ds(resp[1][1], ds.alias, ds)
-c.print(f"The Dataset publication metadata are: {ds_md}", style=info)
+dsStatus, dsPID, dsID = functions.deposit_ds(api, ds.alias, ds)
+c.print(
+    f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
+    style=info,
+)
 
 # --- Add metadata in iRODS --- #
 for item in data_objects_list:
     # Dataset DOI
-    functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
+    functions.save_md(item, "dv.ds.DOI", dsPID, op="add")
     # # Dataset PURL
-    # functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
+    # functions.save_md(item, "dv.ds.PURL", dsPURL, op="set")
 
 
 c.print(
@@ -261,7 +263,7 @@ if inp_dv == "Demo":
         # Save data locally
         functions.save_df(item, trg_path, session)  # download object locally
         # Upload file(s)
-        md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
+        md = functions.deposit_df(api, dsPID, item.name, trg_path)
         print(md)
         # Update status of publication in iRODS from 'processed' to 'deposited'
         functions.save_md(item, atr_publish, "deposited", op="set")
@@ -272,12 +274,13 @@ if inp_dv == "Demo":
 else:
     ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
     for item in data_objects_list:
-        obj = session.data_objects.get(item.path)  # repetition
-        objInfo = functions.get_object_info(obj)
-        du_step1 = functions.get_du_url(ds.baseURL, ds_md[1], objInfo[2], headers[0])
-        du_step2 = functions.put_in_s3(obj, du_step1[1], headers[1])
-        md_dict = functions.create_du_md(du_step1[0], obj, objInfo[1], objInfo[0])
-        du_step3 = functions.post_to_ds(md_dict, ds.baseURL, ds_md[1], headers[0])
+        objChecksum, objMimetype, objSize = functions.get_object_info(item)
+        fileURL, storageID = functions.get_du_url(
+            ds.baseURL, dsPID, objSize, header_key
+        )
+        du_step2 = functions.put_in_s3(item, fileURL, header_ct)
+        md_dict = functions.create_du_md(storageID, item.name, objMimetype, objChecksum)
+        du_step3 = functions.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
         # Update status of publication in iRODS from 'processed' to 'deposited'
         functions.save_md(item, atr_publish, "deposited", op="set")
         # Update timestamp
@@ -287,7 +290,7 @@ else:
         functions.save_md(
             item,
             "dv.df.storageIdentifier",
-            du_step1[0].json()["data"]["storageIdentifier"],
+            storageID,
             op="add",
         )  # TO DO: for the metadata that are added and not set, make a repeatable composite field to group them together
 
