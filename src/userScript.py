@@ -28,7 +28,7 @@ panel_black = Style(color="white", bgcolor="black")
 # create a rich console
 c = Console()
 
-# print instructions for the metadata-driven process
+# --- Print instructions for the metadata-driven process --- #
 c.print(
     Panel.fit(
         """
@@ -45,7 +45,7 @@ The configured Dataverse installations are: Demo, RDR, RDR-pilot
 )
 
 
-#  --- Provide the iRODS environment file to authenticate in a specific zone ---#
+# --- Provide the iRODS environment file to authenticate in a specific zone --- #
 
 print("\nAuthenticate to iRODS zone...")
 session = functions.authenticate_iRODS(
@@ -106,7 +106,7 @@ else:
     )
 
 
-# --- print a table of the selected data ---#
+# --- Print a table of the selected data --- #
 c.print("The following objects are selected for publication:", style=info)
 table = Table(title="data object overview")
 table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
@@ -117,7 +117,7 @@ for object in data_objects_list:
 c.print(table)
 
 
-# --- update metadata in iRODS from initiated to processed & add timestamp --- #
+# --- Update metadata in iRODS from initiated to processed & add timestamp --- #
 
 for item in data_objects_list:
     # Update status of publication in iRODS from 'initiated' to 'processed'
@@ -132,7 +132,7 @@ c.print(
     style=info,
 )
 
-# Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input
+# --- Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input --- #
 print(
     "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
 )
@@ -158,7 +158,7 @@ else:
         style=info,
     )
 
-# Set-up for the selected Dataverse installation
+# --- Set-up for the selected Dataverse installation --- #
 print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
 token = maskpass.askpass(prompt="", mask="*")
 resp = functions.setup(
@@ -172,6 +172,11 @@ ds = resp[2]
 path_to_schema = ds.mango_schema
 path_to_template = ds.metadata_template
 
+# --- Create information to pass on the header for direct upload --- #
+headers = functions.create_headers(token)
+
+
+# --- Retrieve filled-in metadata --- #
 if Confirm.ask(
     "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
 ):
@@ -199,7 +204,7 @@ else:
             except:
                 raise ValueError("The JSON is not in the correct format.")
 
-# Validate metadata
+# --- Validate metadata --- #
 vmd = functions.validate_md(ds, md)
 while not (vmd):
     c.print(
@@ -210,11 +215,11 @@ while not (vmd):
     vmd = functions.validate_md(ds, md)
 c.print(f"The metadata are validated, the process continues.", style=info)
 
-# Deposit draft in selected Dataverse installation
+# --- Deposit draft in selected Dataverse installation --- #
 ds_md = functions.deposit_ds(resp[1][1], ds.alias, ds)
 c.print(f"The Dataset publication metadata are: {ds_md}", style=info)
 
-# Add metadata in iRODS
+# --- Add metadata in iRODS --- #
 for item in data_objects_list:
     # Dataset DOI
     functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
@@ -231,42 +236,53 @@ c.print(
     style=info,
 )
 
-# ---  Save data locally <<<<< CHECK alternatives for the user script --- #
+# --- Upload data files --- #
 
 trg_path = "doc/data"
 
-for item in data_objects_list:
-    # Save data locally - TO DO: CHECK alternatives for the user script
-    functions.save_df(item, trg_path, session)
-    # Upload file(s) - TO DO: add description in iRODS and specify in datafile upload
-    md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
-    print(md)
-    # Update status of publication in iRODS from 'processed' to 'deposited'
-    functions.save_md(item, atr_publish, "deposited", op="set")
-    # Update timestamp
-    functions.save_md(
-        item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
-    )
+if inp_dv == "Demo":
+    ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
+    for item in data_objects_list:
+        # Save data locally
+        functions.save_df(item, trg_path, session)  # download object locally
+        # Upload file(s)
+        md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
+        print(md)
+        # Update status of publication in iRODS from 'processed' to 'deposited'
+        functions.save_md(item, atr_publish, "deposited", op="set")
+        # Update timestamp
+        functions.save_md(
+            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        )
+else:
+    ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
+    for item in data_objects_list:
+        obj = session.data_objects.get(item.path)  # repetition
+        objInfo = functions.get_object_info(obj)
+        du_step1 = functions.get_du_url(ds.baseURL, ds_md[1], objInfo[2], headers[0])
+        du_step2 = functions.put_in_s3(obj, du_step1[1], headers[1])
+        md_dict = functions.create_du_md(du_step1[0], obj, objInfo[1], objInfo[0])
+        du_step3 = functions.post_to_ds(md_dict, ds.baseURL, ds_md[1], headers[0])
+        # Update status of publication in iRODS from 'processed' to 'deposited'
+        functions.save_md(item, atr_publish, "deposited", op="set")
+        # Update timestamp
+        functions.save_md(
+            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        )
+        functions.save_md(
+            item,
+            "dv.df.storageIdentifier",
+            du_step1[0].json()["data"]["storageIdentifier"],
+            op="add",
+        )  # TO DO: for the metadata that are added and not set, make a repeatable composite field to group them together
 
 
-# # Extract relevant datafile metadata - TO DO
+# # Extract relevant datafile metadata - TO DO;
 # df_id = functions.extract_atr(f"{md}", "id")
-# df_md5 = functions.extract_atr(f"{md}", "md5")
-# df_storID = functions.extract_atr(f"{md}", "storageIdentifier")
 
 # # Add metadata in iRODS
 # functions.save_md(
 #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
-# )
-# functions.save_md(
-#     f"{objPath[i]}/{objName[i]}", "dv.df.md5", df_md5, session, op="set"
-# )
-# functions.save_md(
-#     f"{objPath[i]}/{objName[i]}",
-#     "dv.df.storageIdentifier",
-#     df_storID,
-#     session,
-#     op="set",
 # )
 
 
