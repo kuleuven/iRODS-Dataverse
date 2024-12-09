@@ -174,8 +174,11 @@ else:
 
 
 # --- Set-up for the selected Dataverse installation --- #
-print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
+print(
+    f"Provide your Token for <{inp_dv}> Dataverse installation or the name of its environment variable."
+)
 token = maskpass.askpass(prompt="", mask="*")
+token = os.getenv(token, token)
 api, ds = functions.setup(
     inp_dv, token
 )  # this function also validates that the selected Dataverse installations is configured.
