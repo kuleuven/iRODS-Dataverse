@@ -161,7 +161,7 @@ else:
         c.print(f"{len(ldv[inp_dv])} items were tagged for this installation.")
     if "missing" in ldv:
         add_missing = Confirm.ask(
-            f"{len(ldv['missing'])} items were tagged with no installation. Would you like to include them?"
+            f"{len(ldv['missing'])} items were tagged with the installation. Would you like to add metadata in iRODS?"
         )
         if add_missing:
             for item in ldv["missing"]:
@@ -194,46 +194,51 @@ header_key, header_ct = functions.create_headers(token)
 
 
 # --- Retrieve filled-in metadata --- #
-if Confirm.ask(
-    "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
-):
-    # get metadata
-    metadata = avu2json.parse_mango_metadata(path_to_schema, data_objects_list[0])
-    # get template
-    md = functions.get_template(path_to_template, metadata)
+def ask_metadata(path_to_template, path_to_schema, data_objects_list):
+    """..."""
+    if Confirm.ask(
+        "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
+    ):
+        # get metadata
+        metadata = avu2json.parse_mango_metadata(path_to_schema, data_objects_list[0])
+        # get template
+        md = functions.get_template(path_to_template, metadata)
 
-else:
-    md = ""
-    while not os.path.exists(md):
-        md = Prompt.ask(
-            f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be a simplified version.""",
-            default=path_to_template,
-        )
-    with open(md, "r") as f:
-        try:
-            md_contents = json.load(f)
-        except:
-            raise IOError("The file could not be read. Is this a valid JSON?")
-        if "datasetVersion" not in md_contents:
+    else:
+        md = ""
+        while not os.path.exists(md):
+            md = Prompt.ask(
+                f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be the simplified version (ADD REFERENCE to documentation or to the example file e.g. doc/metadata/short_metadata_demo.json).""",
+                default=path_to_template,
+            )
+        with open(md, "r") as f:
             try:
-                metadata = avu2json.parse_json_metadata(path_to_schema, md_contents)
-                md = functions.get_template(path_to_template, metadata)
+                md = json.load(f)
             except:
-                raise ValueError("The JSON is not in the correct format.")
+                raise IOError("The file could not be read. Is this a valid JSON?")
+            if "datasetVersion" not in md:
+                try:
+                    md = functions.get_template(path_to_template, md)
+                except:
+                    raise ValueError("The JSON is not in the correct format.")
+
+    return md
+
 
 # --- Validate metadata --- #
+md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
 vmd = functions.validate_md(ds, md)
 while not (vmd):
     c.print(
-        f"The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].",
+        f"The metadata are not validated, modify <{md}>, save and hit enter to continue.",
         style=info,
     )
-    md = input()
+    md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
     vmd = functions.validate_md(ds, md)
 c.print(f"The metadata are validated, the process continues.", style=info)
 
 # --- Deposit draft in selected Dataverse installation --- #
-dsStatus, dsPID, dsID = functions.deposit_ds(api, ds.alias, ds)
+dsStatus, dsPID, dsID = functions.deposit_ds(api, ds)
 c.print(
     f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
     style=info,
