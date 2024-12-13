@@ -8,14 +8,14 @@ from irods.data_object import iRODSDataObject
 
 ### Get information from iRODS ###
 # authenticate in iRODS
-session = functions.authenticate_iRODS("~/.irods/irods_environment.json")
+session = functions.authenticate_iRODS("/home/danai/.irods/irods_environment.json")
 
 # select iRODS object (result of user script query)
-src = "/set/home/datateam_set/iRODS2DV/testImage.jpeg"
+src = "/set/home/datateam_set/iRODS2DV/iRODSfileUserScript.txt"
 src_dataObj: iRODSDataObject = session.data_objects.get(src)
 data = src_dataObj.open("r")
 
-# Get the checksumk value form iRODS
+# Get the checksum value from iRODS
 chksumRes = src_dataObj.chksum()
 chksumVal = chksumRes[5:]  # this is algorithm-specific
 
@@ -25,7 +25,7 @@ with src_dataObj.open("r") as f:
     mimeTypeVal = magic.from_buffer(blub, mime=True)
 
 # Get the size of the object
-df_size = src_dataObj.size + 1  # (add 1 byte; ok?)
+df_size = src_dataObj.size + 1  # add 1 byte
 
 ### Configuration specific information ###
 # select Dataverse installation (result of user script query)
@@ -41,7 +41,7 @@ elif inp_dv == "Demo":
     dv_ds_DOI = "doi:10.70122/FK2/GTGRKF"
 elif inp_dv == "RDR-pilot":
     BASE_URL = "https://www.rdm.libis.kuleuven.be"
-    dv_ds_DOI = "doi:10.82111/IQCVCF"
+    dv_ds_DOI = "doi:10.82111/JGBUBM"
 
 # Ask the Token for the selected installation
 print(

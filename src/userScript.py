@@ -3,7 +3,7 @@ from irods2dataverse import avu2json
 import json
 import maskpass
 import datetime
-from os.path import expanduser
+import os.path
 from rich.console import Console
 from rich.style import Style
 from rich.panel import Panel
@@ -28,7 +28,7 @@ panel_black = Style(color="white", bgcolor="black")
 # create a rich console
 c = Console()
 
-# print instructions for the metadata-driven process
+# --- Print instructions for the metadata-driven process --- #
 c.print(
     Panel.fit(
         """
@@ -45,11 +45,11 @@ The configured Dataverse installations are: Demo, RDR, RDR-pilot
 )
 
 
-#  --- Provide the iRODS environment file to authenticate in a specific zone ---#
+# --- Provide the iRODS environment file to authenticate in a specific zone --- #
 
 print("\nAuthenticate to iRODS zone...")
 session = functions.authenticate_iRODS(
-    expanduser("~") + "/.irods/irods_environment.json"
+    os.path.expanduser("~") + "/.irods/irods_environment.json"
 )
 if session:
     c.print("You are now authenticated to iRODS", style=info)
@@ -106,7 +106,7 @@ else:
     )
 
 
-# --- print a table of the selected data ---#
+# --- Print a table of the selected data --- #
 c.print("The following objects are selected for publication:", style=info)
 table = Table(title="data object overview")
 table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
@@ -117,7 +117,7 @@ for object in data_objects_list:
 c.print(table)
 
 
-# --- update metadata in iRODS from initiated to processed & add timestamp --- #
+# --- Update metadata in iRODS from initiated to processed & add timestamp --- #
 
 for item in data_objects_list:
     # Update status of publication in iRODS from 'initiated' to 'processed'
@@ -132,151 +132,182 @@ c.print(
     style=info,
 )
 
-# Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input
+# --- Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input --- #
 print(
     "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
 )
 atr_dv = "dv.installation"
-ldv = functions.query_dv(atr_dv, data_objects_list, session)
-if len(ldv) == 0:
-    c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
-    inp_dv = Prompt.ask(
-        "Specify the configured Dataverse installation to publish the data",
-        choices=["RDR", "Demo", "RDR-pilot"],
-        default="Demo",
-    )
-    for item in data_objects_list:
-        functions.save_md(item, atr_dv, inp_dv, op="set")
-    c.print(
-        f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
-        style=action,
-    )
-else:
-    inp_dv = ldv[0]
+installations = ["RDR", "Demo", "RDR-pilot"]
+ldv = functions.query_dv(atr_dv, data_objects_list, installations)
+if len(ldv) == 1 and "missing" not in ldv:
+    inp_dv = list(ldv.keys())[0]
     c.print(
         f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> for the selected data objects are found in iRODS.",
         style=info,
     )
+else:
+    if len(ldv) > 1:
+        c.print(f"Not all the data objects are assigned to the same installation.")
+    else:
+        c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
+    data_objects_list = []
+    inp_dv = Prompt.ask(
+        "Specify the configured Dataverse installation to publish the data",
+        choices=installations,
+        default="Demo",
+    )
+    if inp_dv in ldv:
+        data_objects_list = ldv[inp_dv]
+        c.print(f"{len(ldv[inp_dv])} items were tagged for this installation.")
+    if "missing" in ldv:
+        if len(ldv) > 1:
+            add_missing = Confirm.ask(
+                f"{len(ldv['missing'])} data objects had no metadata for the installation. Would you still want to submit them to this Dataverse installation?"
+            )
+        else:
+            add_missing = True
+        if add_missing:
+            for item in ldv["missing"]:
+                functions.save_md(item, atr_dv, inp_dv, op="set")
+                data_objects_list.append(item)
+            c.print(
+                f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
+                style=action,
+            )
 
-# Set-up for the selected Dataverse installation
-print(f"Provide your Token for <{inp_dv}> Dataverse installation.")
+
+# --- Set-up for the selected Dataverse installation --- #
+print(
+    f"Provide your Token for <{inp_dv}> Dataverse installation or the name of its environment variable."
+)
 token = maskpass.askpass(prompt="", mask="*")
-resp = functions.setup(
+token = os.getenv(token, token)
+api, ds = functions.setup(
     inp_dv, token
 )  # this function also validates that the selected Dataverse installations is configured.
-ds = resp[2]
+
+# get the path for the first data object in the list
+# check the metadata only from the first object in the list
+# print(logical_path.path)
+path_to_schema = ds.mango_schema
+path_to_template = ds.metadata_template
+
+# --- Create information to pass on the header for direct upload --- #
+header_key, header_ct = functions.create_headers(token)
 
 
-if Confirm.ask(
-    "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
-):
-    # get the path for the first data object in the list
-    # check the metadata only from the first object in the list
-    # print(logical_path.path)
-    match inp_dv:
-        case "RDR":
-            path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_RDR.json"
-        case "RDR-pilot":
-            path_to_schema = "doc/metadata/mango2dv-rdr-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_RDR-pilot.json"
-        case "Demo":
-            path_to_schema = "doc/metadata/mango2dv-demo-1.0.0-published.json"
-            path_to_template = "doc/metadata/template_Demo.json"
+# --- Retrieve filled-in metadata --- #
+def ask_metadata(path_to_template, path_to_schema, data_objects_list):
+    """..."""
+    if Confirm.ask(
+        "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
+    ):
+        # get metadata
+        metadata = avu2json.parse_mango_metadata(path_to_schema, data_objects_list[0])
+        # get template
+        md = functions.get_template(path_to_template, metadata)
 
-    # get data object
-    obj = session.data_objects.get(data_objects_list[0].path)
-    # get metadata
-    metadata = avu2json.parse_mango_metadata(path_to_schema, obj)
-    # get template
-    with open(path_to_template) as f:
-        template = json.load(f)
-    # fill in template
-    avu2json.fill_in_template(template, metadata)
-    # write template
-    with open("metadata_dataset.json", "w") as f:
-        json.dump(template, f, indent=4)
+    else:
+        md = ""
+        while not os.path.exists(md):
+            md = Prompt.ask(
+                f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be the simplified version (ADD REFERENCE to documentation or to the example file e.g. doc/metadata/short_metadata_demo.json).""",
+                default=path_to_template,
+            )
+        with open(md, "r") as f:
+            try:
+                md = json.load(f)
+            except:
+                raise IOError("The file could not be read. Is this a valid JSON?")
+            if "datasetVersion" not in md:
+                try:
+                    md = functions.get_template(path_to_template, md)
+                except:
+                    raise ValueError("The JSON is not in the correct format.")
 
-    md = "metadata_dataset.json"
-
-else:
-
-    md = Prompt.ask(
-        f"""Provide the path for the filled-in Dataset metadata. The metadata should match the template <{ds.metadataTemplate}> [PLACEHOLDER - see avu2json]
-The filled-in template for Demo is now at doc/metadata/mdDataset_Demo.json, for RDR at doc/metadata/mdDataset_RDR.json, and for RDR-Pilot at doc/metadata/mdDataset_RDR-pilot.json""",
-        choices=["doc/metadata/mdDataset_RDR.json", "doc/metadata/mdDataset_Demo.json"],
-        default="doc/metadata/mdDataset_Demo.json",
-    )
+    return md
 
 
-# Validate metadata
+# --- Validate metadata --- #
+md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
 vmd = functions.validate_md(ds, md)
 while not (vmd):
     c.print(
-        f"The metadata are not validated, modify <{md}>, save and hit enter to continue [PLACEHOLDER - see avu2json].",
+        f"The metadata are not validated, modify <{md}>, save and hit enter to continue.",
         style=info,
     )
-    md = input()
+    md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
     vmd = functions.validate_md(ds, md)
 c.print(f"The metadata are validated, the process continues.", style=info)
 
-# Deposit draft in selected Dataverse installation
-ds_md = functions.deposit_ds(resp[1][1], ds.alias, ds)
-c.print(f"The Dataset publication metadata are: {ds_md}", style=info)
-
-# Add metadata in iRODS
-for item in data_objects_list:
-    # Dataset DOI
-    functions.save_md(item, "dv.ds.DOI", ds_md[1], op="add")
-    # # Dataset PURL
-    # functions.save_md(item, "dv.ds.PURL", ds_md[3], op="set")
-
-
+# --- Deposit draft in selected Dataverse installation --- #
+dsStatus, dsPID, dsID = functions.deposit_ds(api, ds)
 c.print(
-    f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
+    f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
     style=info,
 )
+
+# --- Add metadata in iRODS --- #
+for item in data_objects_list:
+    # Dataset DOI
+    functions.save_md(item, "dv.ds.DOI", dsPID, op="add")
+    # # Dataset PURL
+    # functions.save_md(item, "dv.ds.PURL", dsPURL, op="set")
+
+
 c.print(
     f"The Dataset DOI is added as metadata to the selected data objects.",
     style=info,
 )
 
-# ---  Save data locally <<<<< CHECK alternatives for the user script --- #
+# --- Upload data files --- #
 
 trg_path = "doc/data"
 
-for item in data_objects_list:
-    # Save data locally - TO DO: CHECK alternatives for the user script
-    functions.save_df(item, trg_path, session)
-    # Upload file(s) - TO DO: add description in iRODS and specify in datafile upload
-    md = functions.deposit_df(resp[1][1], ds_md[1], item.name, trg_path)
-    print(md)
-    # Update status of publication in iRODS from 'processed' to 'deposited'
-    functions.save_md(item, atr_publish, "deposited", op="set")
-    # Update timestamp
-    functions.save_md(
-        item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
-    )
+if inp_dv == "Demo":
+    ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
+    for item in data_objects_list:
+        # Save data locally
+        functions.save_df(item, trg_path, session)  # download object locally
+        # Upload file(s)
+        md = functions.deposit_df(api, dsPID, item.name, trg_path)
+        print(md)
+        # Update status of publication in iRODS from 'processed' to 'deposited'
+        functions.save_md(item, atr_publish, "deposited", op="set")
+        # Update timestamp
+        functions.save_md(
+            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        )
+else:
+    ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
+    for item in data_objects_list:
+        objChecksum, objMimetype, objSize = functions.get_object_info(item)
+        fileURL, storageID = functions.get_du_url(
+            ds.baseURL, dsPID, objSize, header_key
+        )
+        du_step2 = functions.put_in_s3(item, fileURL, header_ct)
+        md_dict = functions.create_du_md(storageID, item.name, objMimetype, objChecksum)
+        du_step3 = functions.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
+        # Update status of publication in iRODS from 'processed' to 'deposited'
+        functions.save_md(item, atr_publish, "deposited", op="set")
+        # Update timestamp
+        functions.save_md(
+            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        )
+        functions.save_md(
+            item,
+            "dv.df.storageIdentifier",
+            storageID,
+            op="add",
+        )  # TO DO: for the metadata that are added and not set, make a repeatable composite field to group them together
 
 
-# # Extract relevant datafile metadata - TO DO
+# # Extract relevant datafile metadata - TO DO;
 # df_id = functions.extract_atr(f"{md}", "id")
-# df_md5 = functions.extract_atr(f"{md}", "md5")
-# df_storID = functions.extract_atr(f"{md}", "storageIdentifier")
 
 # # Add metadata in iRODS
 # functions.save_md(
 #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
-# )
-# functions.save_md(
-#     f"{objPath[i]}/{objName[i]}", "dv.df.md5", df_md5, session, op="set"
-# )
-# functions.save_md(
-#     f"{objPath[i]}/{objName[i]}",
-#     "dv.df.storageIdentifier",
-#     df_storID,
-#     session,
-#     op="set",
 # )
 
 
