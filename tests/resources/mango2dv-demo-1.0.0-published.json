@@ -1,5 +1,5 @@
 {
-  "schema_name": "publish2rdr",
+  "schema_name": "mango2dv-demo",
   "version": "1.0.0",
   "status": "published",
   "properties": {
@@ -32,7 +32,6 @@
         }
       },
       "type": "object",
-      "required": false,
       "repeatable": false,
       "help": "The entity, e.g. person or organization, that created the Dataset"
     },
@@ -52,12 +51,11 @@
           "type": "text",
           "placeholder": "",
           "pattern": "",
-          "required": true,
+          "required": false,
           "help": "The point of contact's email address"
         }
       },
       "type": "object",
-      "required": false,
       "repeatable": false,
       "help": "The entity, e.g. person or organization, that users of the Dataset can contact with questions"
     },
@@ -74,80 +72,36 @@
         }
       },
       "type": "object",
-      "required": false,
       "repeatable": true,
       "help": "A summary describing the purpose, nature, and scope of the Dataset"
     },
-    "keyword": {
-      "title": "Keyword",
-      "properties": {
-        "keywordValue": {
-          "title": "Keyword",
-          "type": "text",
-          "placeholder": "",
-          "pattern": "",
-          "required": true,
-          "help": "Input type: text"
-        }
-      },
-      "type": "object",
-      "required": false,
-      "repeatable": true,
-      "help": "A keyword to help find the dataset."
-    },
-    "technicalFormat": {
-      "title": "File types",
-      "type": "text",
-      "placeholder": "csv, tiff, pdf...",
-      "pattern": "",
-      "required": true,
-      "help": "Input type: text"
-    },
-    "access": {
-      "title": "Access",
-      "properties": {
-        "accessRights": {
-          "title": "Access Rights",
-          "type": "select",
-          "values": [
-            "open",
-            "restricted",
-            "embargoed",
-            "closed"
-          ],
-          "multiple": false,
-          "ui": "radio"
-        },
-        "dateAvailable": {
-          "title": "Date Available",
-          "type": "datetime-local",
-          "placeholder": "",
-          "pattern": "",
-          "help": "Input type is datetime-local, leave as empty string if access is open."
-        },
-        "legitimateOptout": {
-          "title": "Legitimate Opt-out",
-          "type": "select",
-          "values": [
-            "privacy",
-            "intellectual property rights",
-            "ethical aspects",
-            "aspects of dual use",
-            "other"
-          ],
-          "multiple": false,
-          "ui": "radio",
-          "help": "Choose one of 5 options, choose other if access is open."
-        }
-      },
-      "type": "object",
-      "required": false,
-      "repeatable": false,
-      "help": "Access rights to the dataset."
+    "subject": {
+      "title": "Subject",
+      "type": "select",
+      "values": [
+        "Agricultural Sciences",
+        "Arts and Humanities",
+        "Astronomy and Astrophysics",
+        "Business and Management",
+        "Chemistry",
+        "Computer and Information Science",
+        "Earth and Environmental Sciences",
+        "Engineering",
+        "Law",
+        "Mathematical Sciences",
+        "Medicine, Health and Life Sciences",
+        "Physics",
+        "Social Sciences",
+        "Other",
+        "Demo Only"
+      ],
+      "multiple": true,
+      "ui": "checkbox",
+      "help": "The area of study relevant to the Dataset"
     }
   },
   "edited_by": "u0112360",
   "realm": "datateam_set",
-  "title": "ManGO Dataset to Dataverse RDR",
+  "title": "ManGO Dataset to Dataverse Demo",
   "parent": ""
 }

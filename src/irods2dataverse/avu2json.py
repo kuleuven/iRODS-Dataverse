@@ -87,7 +87,9 @@ def fill_in_template(template, avus):
     """
     fields = template["datasetVersion"]["metadataBlocks"]["citation"]["fields"]
     new_fields = [update_template(field, avus) for field in fields]
-    template["datasetVersion"]["metadataBlocks"]["citation"]["fields"] = new_fields
+    template["datasetVersion"]["metadataBlocks"]["citation"]["fields"] = [
+        field for field in new_fields if fields is not None
+    ]
 
 
 def return_dict(value, fromAvu):
@@ -118,11 +120,13 @@ def update_template(field, avus_as_json):
 
     typeName = field["typeName"]
     value = field["value"]
-    #get the value from avu based on typename
+    # get the value from avu based on typename
+    if typeName not in avus_as_json:
+        return None
     fromAvu = avus_as_json[typeName]
     typeClass = field["typeClass"]
-    #put single value in list if multiple is true
-    if field["typeClass"] == 'controlledVocabulary' and field['multiple'] == True:
+    # put single value in list if multiple is true
+    if field["typeClass"] == "controlledVocabulary" and field["multiple"] == True:
         if type(fromAvu) != list:
             fromAvu = [fromAvu]
     if typeClass != "compound":

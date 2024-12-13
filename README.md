@@ -78,7 +78,9 @@ This would be the example for RDR:
 ```json
 {
     "access": {
-        "accessRights": "open"
+        "accessRights": "open",
+        "dateAvailable": "",
+        "legitimateOptout": "other"
     },
     "author": [
         {
@@ -107,7 +109,7 @@ This would be the example for RDR:
 }
 ```
 
-If you copy the text below and adapt the values into a text file, the path to that file
+If you copy the text above and adapt the values into a text file, the path to that file
 can be provided in this step.
 
 6. Validate the metadata.

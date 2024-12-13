@@ -1,10 +1,9 @@
 configparser==7.1.0
 exceptiongroup==1.2.1
-ipython==8.29.0
 mango-mdschema==1.0.2
 maskpass==0.3.7
 pip==24.2
-pydataverse==0.3.2
+pyDataverse==0.3.2
 python-magic==0.4.27
 requests==2.31.0
 rich==13.9.4

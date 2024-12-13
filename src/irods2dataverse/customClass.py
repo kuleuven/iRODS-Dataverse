@@ -59,4 +59,5 @@ class RDRPilotDataset(RDRDataset):
         self.alias = "rdr"
         self.name = "RDRPilotDataset"
         self.baseURL = "https://www.rdm.libis.kuleuven.be/"
-        self.metadataTemplate = "doc/metadata/template_RDR-pilot.json"
+        self.metadataTemplate = "template_RDR-pilot.json"
+        self._mangoSchema = "mango2dv-rdr-1.0.0-published.json"

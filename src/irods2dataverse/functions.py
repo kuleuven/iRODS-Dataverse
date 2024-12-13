@@ -274,8 +274,8 @@ def setup(inp_dv, inp_tk):
         The message depends on the HTTP status for accessing the Dataverse installation.
         If the HTTP status is 200, then the process can continue and the user gets the path to metadata template they need to fill in for the selected Dataverse installation.
         If the HTTP status is not 200, the process cannot continue until the user can provide valid authentication credentials.
-    resp: list
-        The returns of authenticate_DV
+    api: list
+        object of class pyDataverse.api.NativeApi
     ds: class
         The class that is instantiated
     """
@@ -336,15 +336,15 @@ def validate_md(ds, md):
         return False
 
 
-def deposit_ds(api, inp_dv, ds):
+def deposit_ds(api, ds):
     """Create a Dataverse dataset with user specified metadata
 
     Parameters
     ----------
     api : list
         Status and pyDataverse object
-    inp_dv: str
-        The selected Dataverse installation
+    ds: Dataset
+        The Dataset for the selected Dataverse installation
 
     Returns
     -------
@@ -358,7 +358,7 @@ def deposit_ds(api, inp_dv, ds):
         Dataset Private URL
     """
 
-    resp = api.create_dataset(inp_dv.lower(), ds.json()).json()
+    resp = api.create_dataset(ds.alias, ds.json()).json()
     dsStatus = resp["status"]
     dsPID = resp["data"]["persistentId"]
     dsID = resp["data"]["id"]
@@ -600,7 +600,7 @@ def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
     # send the POST request
     response = requests.post(
         f"{BASE_URL}/api/datasets/:persistentId/add?persistentId={dv_ds_DOI}",
-        header=header_key,
+        headers=header_key,
         files=files,
     )
     # # verify status
