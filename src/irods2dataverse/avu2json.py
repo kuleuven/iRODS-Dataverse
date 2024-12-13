@@ -140,6 +140,28 @@ def update_template(field, avus_as_json):
     return field
 
 
+def get_template(path_to_template, metadata):
+    """Turn a metadata dictionary into a .
+
+    Parameters
+    ----------
+    path_to_template : str
+        The path to the original template
+    metadata : dict
+        A simplified dictionary with metadata
+
+    Returns
+    -------
+    template: dict
+        A complete template as dictionary
+    """
+    with open(path_to_template) as f:
+        template = json.load(f)
+    # fill in template
+    fill_in_template(template, metadata)
+    return template
+
+
 if __name__ == "__main__":
     """This is only for testing and demo'ing. The idea is that this is called as a module and the functions used as part
     of some automated script.

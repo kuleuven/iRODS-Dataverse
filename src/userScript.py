@@ -1,5 +1,4 @@
-from irods2dataverse import functions
-from irods2dataverse import avu2json
+from irods2dataverse import from_irods, to_dataverse, direct_upload, avu2json
 import json
 import maskpass
 import datetime
@@ -48,7 +47,7 @@ The configured Dataverse installations are: Demo, RDR, RDR-pilot
 # --- Provide the iRODS environment file to authenticate in a specific zone --- #
 
 print("\nAuthenticate to iRODS zone...")
-session = functions.authenticate_iRODS(
+session = from_irods.authenticate_iRODS(
     os.path.expanduser("~") + "/.irods/irods_environment.json"
 )
 if session:
@@ -67,7 +66,7 @@ atr_publish = "dv.publication"
 val = "initiated"
 
 
-data_objects_list = functions.query_data(
+data_objects_list = from_irods.query_data(
     atr_publish, val, session
 )  # look for data based on A = dv.publication & value = initiated
 
@@ -84,7 +83,7 @@ if len(data_objects_list) == 0:  # ldt = qdata
         try:
             obj = session.data_objects.get(inp_i)
             data_objects_list.append(obj)
-            if functions.save_md(obj, atr_publish, val, op="set"):
+            if from_irods.save_md(obj, atr_publish, val, op="set"):
                 c.print(
                     f"Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object."
                 )
@@ -121,9 +120,9 @@ c.print(table)
 
 for item in data_objects_list:
     # Update status of publication in iRODS from 'initiated' to 'processed'
-    functions.save_md(item, atr_publish, "processed", op="set")
+    from_irods.save_md(item, atr_publish, "processed", op="set")
     # Dataset status timestamp
-    functions.save_md(
+    from_irods.save_md(
         item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
     )
 
@@ -138,7 +137,7 @@ print(
 )
 atr_dv = "dv.installation"
 installations = ["RDR", "Demo", "RDR-pilot"]
-ldv = functions.query_dv(atr_dv, data_objects_list, installations)
+ldv = from_irods.query_dv(atr_dv, data_objects_list, installations)
 if len(ldv) == 1 and "missing" not in ldv:
     inp_dv = list(ldv.keys())[0]
     c.print(
@@ -168,7 +167,7 @@ else:
             add_missing = True
         if add_missing:
             for item in ldv["missing"]:
-                functions.save_md(item, atr_dv, inp_dv, op="set")
+                from_irods.save_md(item, atr_dv, inp_dv, op="set")
                 data_objects_list.append(item)
             c.print(
                 f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
@@ -182,7 +181,7 @@ print(
 )
 token = maskpass.askpass(prompt="", mask="*")
 token = os.getenv(token, token)
-api, ds = functions.setup(
+api, ds = to_dataverse.setup(
     inp_dv, token
 )  # this function also validates that the selected Dataverse installations is configured.
 
@@ -193,7 +192,7 @@ path_to_schema = ds.mango_schema
 path_to_template = ds.metadata_template
 
 # --- Create information to pass on the header for direct upload --- #
-header_key, header_ct = functions.create_headers(token)
+header_key, header_ct = direct_upload.create_headers(token)
 
 
 # --- Retrieve filled-in metadata --- #
@@ -203,9 +202,17 @@ def ask_metadata(path_to_template, path_to_schema, data_objects_list):
         "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
     ):
         # get metadata
-        metadata = avu2json.parse_mango_metadata(path_to_schema, data_objects_list[0])
+        for data_object in data_objects_list:
+            metadata = avu2json.parse_mango_metadata(path_to_schema, data_object)
+            if metadata:
+                break
         # get template
-        md = functions.get_template(path_to_template, metadata)
+        if not metadata:
+            c.print(
+                "Sorry, no schema metadata for this Dataverse installation was found, let's try again!"
+            )
+            return ask_metadata(path_to_template, path_to_schema, data_objects_list)
+        md = avu2json.get_template(path_to_template, metadata)
 
     else:
         md = ""
@@ -221,7 +228,7 @@ def ask_metadata(path_to_template, path_to_schema, data_objects_list):
                 raise IOError("The file could not be read. Is this a valid JSON?")
             if "datasetVersion" not in md:
                 try:
-                    md = functions.get_template(path_to_template, md)
+                    md = avu2json.get_template(path_to_template, md)
                 except:
                     raise ValueError("The JSON is not in the correct format.")
 
@@ -230,18 +237,18 @@ def ask_metadata(path_to_template, path_to_schema, data_objects_list):
 
 # --- Validate metadata --- #
 md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
-vmd = functions.validate_md(ds, md)
+vmd = to_dataverse.validate_md(ds, md)
 while not (vmd):
     c.print(
         f"The metadata are not validated, modify <{md}>, save and hit enter to continue.",
         style=info,
     )
     md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
-    vmd = functions.validate_md(ds, md)
+    vmd = to_dataverse.validate_md(ds, md)
 c.print(f"The metadata are validated, the process continues.", style=info)
 
 # --- Deposit draft in selected Dataverse installation --- #
-dsStatus, dsPID, dsID = functions.deposit_ds(api, ds)
+dsStatus, dsPID, dsID = to_dataverse.deposit_ds(api, ds)
 c.print(
     f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
     style=info,
@@ -250,9 +257,9 @@ c.print(
 # --- Add metadata in iRODS --- #
 for item in data_objects_list:
     # Dataset DOI
-    functions.save_md(item, "dv.ds.DOI", dsPID, op="add")
+    from_irods.save_md(item, "dv.ds.DOI", dsPID, op="add")
     # # Dataset PURL
-    # functions.save_md(item, "dv.ds.PURL", dsPURL, op="set")
+    # from_irods.save_md(item, "dv.ds.PURL", dsPURL, op="set")
 
 
 c.print(
@@ -268,45 +275,43 @@ if inp_dv == "Demo":
     ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
     for item in data_objects_list:
         # Save data locally
-        functions.save_df(item, trg_path, session)  # download object locally
+        from_irods.save_df(item, trg_path, session)  # download object locally
         # Upload file(s)
-        md = functions.deposit_df(api, dsPID, item.name, trg_path)
+        md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
         print(md)
         # Update status of publication in iRODS from 'processed' to 'deposited'
-        functions.save_md(item, atr_publish, "deposited", op="set")
+        from_irods.save_md(item, atr_publish, "deposited", op="set")
         # Update timestamp
-        functions.save_md(
+        from_irods.save_md(
             item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
         )
 else:
     ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
     for item in data_objects_list:
-        objChecksum, objMimetype, objSize = functions.get_object_info(item)
-        fileURL, storageID = functions.get_du_url(
+        objChecksum, objMimetype, objSize = from_irods.get_object_info(item)
+        fileURL, storageID = direct_upload.get_du_url(
             ds.baseURL, dsPID, objSize, header_key
         )
-        du_step2 = functions.put_in_s3(item, fileURL, header_ct)
-        md_dict = functions.create_du_md(storageID, item.name, objMimetype, objChecksum)
-        du_step3 = functions.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
+        du_step2 = direct_upload.put_in_s3(item, fileURL, header_ct)
+        md_dict = direct_upload.create_du_md(
+            storageID, item.name, objMimetype, objChecksum
+        )
+        du_step3 = direct_upload.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
         # Update status of publication in iRODS from 'processed' to 'deposited'
-        functions.save_md(item, atr_publish, "deposited", op="set")
+        from_irods.save_md(item, atr_publish, "deposited", op="set")
         # Update timestamp
-        functions.save_md(
+        from_irods.save_md(
             item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
         )
-        functions.save_md(
+        from_irods.save_md(
             item,
             "dv.df.storageIdentifier",
             storageID,
             op="add",
         )  # TO DO: for the metadata that are added and not set, make a repeatable composite field to group them together
 
-
-# # Extract relevant datafile metadata - TO DO;
-# df_id = functions.extract_atr(f"{md}", "id")
-
 # # Add metadata in iRODS
-# functions.save_md(
+# from_irods.save_md(
 #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
 # )
 

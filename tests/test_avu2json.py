@@ -1,6 +1,11 @@
 import unittest
 import os.path
-from irods2dataverse.avu2json import *
+from irods2dataverse.avu2json import (
+    parse_json_metadata,
+    update_template,
+    extract_template,
+    fill_in_template,
+)
 
 
 class TestFieldTransformation(unittest.TestCase):
