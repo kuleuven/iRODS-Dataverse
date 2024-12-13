@@ -1,2 +1,0 @@
-This is an iRODS data object and the user chooses to publish it in a Dataverse dataset.
-The data object is created for the demo of March 19, 2024.

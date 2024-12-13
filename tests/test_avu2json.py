@@ -8,11 +8,11 @@ class TestFieldTransformation(unittest.TestCase):
         self.metadatadict = {
             "author": {
                 "authorAffiliation": "KU Leuven",
-                "authorName": "Kafetzaki, Danai",
+                "authorName": "Doe, Jane",
             },
             "datasetContact": {
-                "datasetContactEmail": "danai.kafetzaki@kuleuven.be",
-                "datasetContactName": "Kafetzaki, Danai",
+                "datasetContactEmail": "user.name@kuleuven.be",
+                "datasetContactName": "Doe, Jane",
             },
             "dsDescription": [
                 {
