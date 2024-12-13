@@ -160,9 +160,12 @@ else:
         data_objects_list = ldv[inp_dv]
         c.print(f"{len(ldv[inp_dv])} items were tagged for this installation.")
     if "missing" in ldv:
-        add_missing = Confirm.ask(
-            f"{len(ldv['missing'])} items were tagged with the installation. Would you like to add metadata in iRODS?"
-        )
+        if len(ldv) > 1:
+            add_missing = Confirm.ask(
+                f"{len(ldv['missing'])} data objects had no metadata for the installation. Would you still want to submit them to this Dataverse installation?"
+            )
+        else:
+            add_missing = True
         if add_missing:
             for item in ldv["missing"]:
                 functions.save_md(item, atr_dv, inp_dv, op="set")
