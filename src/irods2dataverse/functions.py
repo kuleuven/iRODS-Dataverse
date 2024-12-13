@@ -17,6 +17,7 @@ import hashlib
 from irods2dataverse.avu2json import fill_in_template
 
 
+# region from_irods
 def authenticate_iRODS(env_path):
     """Authenticate to iRODS, in the zone specified in the environment file.
 
@@ -49,31 +50,6 @@ def authenticate_iRODS(env_path):
         return False
 
 
-def authenticate_DV(url, tk):
-    """Check that the use can be authenticated to Dataverse.
-
-    Parameters
-    ----------
-    url: str
-        The URL to the Dataverse installation
-    tk: str
-        The Dataverse API Token
-
-    Returns
-    -------
-    status: str
-        The HTTP status for accessing the Dataverse installation.
-    api: list
-        Status and pyDataverse object
-    """
-
-    api = NativeApi(url, tk)
-    resp = api.get_info_version()
-    status = resp.status_code
-
-    return status, api
-
-
 def query_data(atr, val, session):
     """iRODS query to get the data objects destined for publication based on metadata.
     Parameters
@@ -90,45 +66,16 @@ def query_data(atr, val, session):
       list of the data object(s) including iRODS path
     """
 
-    lobj = []
     qobj = (
-        session.query(Collection.name, DataObject.name, DataObjectMeta.name)
+        session.query(Collection.name, DataObject.name)
         .filter(Criterion("=", DataObjectMeta.name, atr))
         .filter(Criterion("=", DataObjectMeta.value, val))
     )
-    for item in qobj:
-        obj_location = f"{item[Collection.name]}/{item[DataObject.name]}"
-        obj: iRODSDataObject = session.data_objects.get(obj_location)
-        lobj.append(obj)
-    lobj = list(set(lobj))
-    return lobj  # qobj
-
-
-def split_obj(obj):  # not used
-    """Split input in path and filename.
-
-    Parameters
-    ----------
-    obj: list
-      iRODS path and name of object(s) for publication
-
-    Returns
-    -------
-    objPath: list
-      iRODS path of each data object for publication
-    objName: list
-      Filename of each data object for publication
-    """
-
-    objPath = []
-    objName = []
-    for item in obj:
-        res = item.split("/")
-        obji = res[len(res) - 1]
-        objPath.append(item[: -(len(obji) + 1)])
-        objName.append(obji)
-
-    return objPath, objName
+    lobj = set(
+        session.data_objects.get(f"{item[Collection.name]}/{item[DataObject.name]}")
+        for item in qobj
+    )
+    return list(lobj)  # qobj
 
 
 def query_dv(atr, data_objects, installations):
@@ -165,30 +112,6 @@ def query_dv(atr, data_objects, installations):
     return {k: v for k, v in installations_dict.items() if len(v) > 0}
 
 
-def get_data_object(session, object_location):
-    """Operations on the data_object
-
-    Parameters
-    ----------
-    session: iRODS session
-    object_location: str
-      iRODS path of each data object for publication
-
-    Returns
-    -------
-    obj: iRODSDataObject
-      the object meant for publication
-
-    """
-    print(object_location)
-    obj = session.data_objects.get(object_location)
-    # print(obj.name)
-    # print(obj.collection)
-    # print(obj.path)
-
-    return obj
-
-
 def get_object_info(obj):
     """Retrieve object information for direct upload.
 
@@ -222,32 +145,92 @@ def get_object_info(obj):
     return objChecksum, objMimetype, objSize
 
 
-def create_headers(token):
-    """Create information to pass on the header for direct upload
+def save_md(item, atr, val, op):
+    """Add metadata in iRODS.
 
     Parameters
     ----------
-    token: str
-      the Dataverse token given by the user
+    item: str
+        Path and name of the data object in iRODS
+    atr: str
+        Name of metadata attribute
+    val: str
+        Value of metadata attribute
+    session: iRODS session
+    op: str
+        Metadata operation, one of "add" or "set".
+    """
+
+    try:
+        if op == "add":
+            item.metadata.add(str(atr), str(val))
+            print(
+                f"Metadata attribute {atr} with value {val}> is added to data object {item}."
+            )
+            return True
+        elif op == "set":
+            item.metadata.set(f"{atr}", f"{val}")
+            print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
+            return True
+        else:
+            print(
+                "No valid metadata operation is selected. Specify one of 'add' or 'set'."
+            )
+            return True
+    except Exception as e:  # change this to specific exception
+        print(type(e))
+        print(f"An error occurred: {e}")
+        return False
+
+
+# this one could go to avu2json
+def get_template(path_to_template, metadata):
+    """Turn a metadata dictionary into a .
+
+    Parameters
+    ----------
+    path_to_template : str
+        The path to the original template
+    metadata : dict
+        A simplified dictionary with metadata
 
     Returns
     -------
-    header_key: dict
-      the token used in direct upload step-1 and step-3
-    header_ct: dict
-      the content type for data transmission used in direct upload step-2
+    template: dict
+        A complete template as dictionary
+    """
+    with open(path_to_template) as f:
+        template = json.load(f)
+    # fill in template
+    fill_in_template(template, metadata)
+    return template
+
+
+# endregion
+# region todv
+def authenticate_DV(url, tk):
+    """Check that the use can be authenticated to Dataverse.
+
+    Parameters
+    ----------
+    url: str
+        The URL to the Dataverse installation
+    tk: str
+        The Dataverse API Token
+
+    Returns
+    -------
+    status: str
+        The HTTP status for accessing the Dataverse installation.
+    api: list
+        Status and pyDataverse object
     """
 
-    # create headers with Dataverse token: used in step-1 and step-3
-    header_key = {
-        "X-Dataverse-key": token,
-    }
-    # create headers with content type for data transmission: used in step-2
-    header_ct = {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
+    api = NativeApi(url, tk)
+    resp = api.get_info_version()
+    status = resp.status_code
 
-    return header_key, header_ct
+    return status, api
 
 
 def instantiate_selected_class(installationName, config):
@@ -387,6 +370,100 @@ def deposit_ds(api, inp_dv, ds):
         dsPID,
         dsID,
     )  # dsPURL
+
+
+def save_df(data_object, trg_path, session):
+    """Save locally the iRODS data objects destined for publication
+
+    Parameters
+    ----------
+    objPath: str
+      iRODS path of a data object destined for publication
+    objName: str
+      Filename of a data object destined for publication
+    trg_path: str
+      Local directory to save data
+    session: iRODS session
+    """
+    opts = {kw.FORCE_FLAG_KW: True}
+    # TO DO: checksum in case download is not needed?
+    """
+    def checksum(f):
+        md5 = hashlib.md5()    
+        md5.update(open(f).read())
+        return md5.hexdigest()
+
+    def is_contents_same(f1, f2):
+        return checksum(f1) == checksum(f2)
+    """
+    session.data_objects.get(data_object.path, f"{trg_path}/{data_object.name}", **opts)
+
+
+def deposit_df(api, dsPID, data_object_name, inp_path):
+    """Upload the list of data files in Dataverse Dataset
+
+    Parameters
+    ----------
+    api : list
+        Status and pyDataverse object
+    dsPID : str
+        Dataset Persistent Identifier
+    inp_df : str
+        The name of the file destined for publication
+    inp_path: str
+        The path to the local directory to save the data files
+
+    Returns
+    -------
+    dfResp: list
+        API response from each data file upload
+    dfPID: list
+        String in JSON format with persistent ID and filename.
+    """
+
+    df = Datafile()
+    df.set({"pid": dsPID, "filename": data_object_name})
+    df.get()
+    resp = api.upload_datafile(dsPID, f"{inp_path}/{data_object_name}", df.json())
+    # if resp.status_code != 200: # deal with errors?
+    #     return resp
+
+    print(f"{data_object_name} is uploaded")
+
+    return resp.json()  # , df.json()
+
+
+# endregion
+
+# region directupload
+
+
+def create_headers(token):
+    """Create information to pass on the header for direct upload
+
+    Parameters
+    ----------
+    token: str
+      the Dataverse token given by the user
+
+    Returns
+    -------
+    header_key: dict
+      the token used in direct upload step-1 and step-3
+    header_ct: dict
+      the content type for data transmission used in direct upload step-2
+    """
+
+    # create headers with Dataverse token: used in step-1 and step-3
+    header_key = {
+        "X-Dataverse-key": token,
+    }
+    # create headers with content type for data transmission: used in step-2
+    header_ct = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    return header_key, header_ct
 
 
 def get_du_url(BASE_URL, dv_ds_DOI, df_size, header_key):
@@ -532,65 +609,7 @@ def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
     return response
 
 
-def save_df(data_object, trg_path, session):
-    """Save locally the iRODS data objects destined for publication
-
-    Parameters
-    ----------
-    objPath: str
-      iRODS path of a data object destined for publication
-    objName: str
-      Filename of a data object destined for publication
-    trg_path: str
-      Local directory to save data
-    session: iRODS session
-    """
-    opts = {kw.FORCE_FLAG_KW: True}
-    # TO DO: checksum in case download is not needed?
-    """
-    def checksum(f):
-        md5 = hashlib.md5()    
-        md5.update(open(f).read())
-        return md5.hexdigest()
-
-    def is_contents_same(f1, f2):
-        return checksum(f1) == checksum(f2)
-    """
-    session.data_objects.get(data_object.path, f"{trg_path}/{data_object.name}", **opts)
-
-
-def deposit_df(api, dsPID, data_object_name, inp_path):
-    """Upload the list of data files in Dataverse Dataset
-
-    Parameters
-    ----------
-    api : list
-        Status and pyDataverse object
-    dsPID : str
-        Dataset Persistent Identifier
-    inp_df : str
-        The name of the file destined for publication
-    inp_path: str
-        The path to the local directory to save the data files
-
-    Returns
-    -------
-    dfResp: list
-        API response from each data file upload
-    dfPID: list
-        String in JSON format with persistent ID and filename.
-    """
-
-    df = Datafile()
-    df.set({"pid": dsPID, "filename": data_object_name})
-    df.get()
-    resp = api.upload_datafile(dsPID, f"{inp_path}/{data_object_name}", df.json())
-    # if resp.status_code != 200: # deal with errors?
-    #     return resp
-
-    print(f"{data_object_name} is uploaded")
-
-    return resp.json()  # , df.json()
+# endregion
 
 
 def extract_atr(JSONstr, atr):
@@ -614,65 +633,3 @@ def extract_atr(JSONstr, atr):
     val = json_obj[atr]  # integers
 
     return val
-
-
-def save_md(item, atr, val, op):
-    """Add metadata in iRODS.
-
-    Parameters
-    ----------
-    item: str
-        Path and name of the data object in iRODS
-    atr: str
-        Name of metadata attribute
-    val: str
-        Value of metadata attribute
-    session: iRODS session
-    op: str
-        Metadata operation, one of "add" or "set".
-    """
-
-    try:
-        if op == "add":
-            item.metadata.apply_atomic_operations(
-                AVUOperation(operation="add", avu=iRODSMeta(f"{atr}", f"{val}"))
-            )
-            print(
-                f"Metadata attribute {atr} with value {val}> is added to data object {item}."
-            )
-            return True
-        elif op == "set":
-            item.metadata.set(f"{atr}", f"{val}")
-            print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
-            return True
-        else:
-            print(
-                "No valid metadata operation is selected. Specify one of 'add' or 'set'."
-            )
-            return True
-    except Exception as e:  # change this to specific exception
-        print(type(e))
-        print(f"An error occurred: {e}")
-        return False
-
-
-def get_template(path_to_template, metadata):
-    """Turn a metadata dictionary into a .
-
-    Parameters
-    ----------
-    path_to_template : str
-        The path to the original template
-    metadata : dict
-        A simplified dictionary with metadata
-
-    Returns
-    -------
-    template: dict
-        A complete template as dictionary
-    """
-    with open(path_to_template) as f:
-        template = json.load(f)
-    # fill in template
-    fill_in_template(template, metadata)
-    return template
