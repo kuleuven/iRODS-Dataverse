@@ -14,6 +14,7 @@ from pyDataverse.utils import read_file
 from configparser import ConfigParser
 import irods.keywords as kw
 import hashlib
+from irods2dataverse.avu2json import fill_in_template
 
 
 def authenticate_iRODS(env_path):
@@ -130,14 +131,7 @@ def split_obj(obj):  # not used
     return objPath, objName
 
 
-def check_identical_list_elements(list):
-    """check if all elements in a list are identical
-    param: list
-    returns: bool"""
-    return all(i == list[0] for i in list)
-
-
-def query_dv(atr, data_object, session):
+def query_dv(atr, data_objects, installations):
     """iRODS query to get the Dataverse installation for the data that are destined for publication if
     specified as metadata dv.installation
 
@@ -145,10 +139,10 @@ def query_dv(atr, data_object, session):
     ----------
     atr: str
       the metadata attribute describing the Dataverse installation
-    objPath: list
-      iRODS path of each data object for publication
-    objName: list
-      Filename of each data object for publication
+    data_object: irods.DataObject
+      Data object to get info from
+    installations: list
+      List of possible installations
     session: iRODS session
 
     Returns
@@ -156,30 +150,19 @@ def query_dv(atr, data_object, session):
     lMD: list
       list of metadata values for the given attribute
     """
+    installations_dict = {k: [] for k in installations}
+    installations_dict["missing"] = []
+    for item in data_objects:
+        md_installations = [
+            x.value for x in item.metadata.get_all(atr) if x.value in installations_dict
+        ]
+        if len(md_installations) == 1:
+            installations_dict[md_installations[0]].append(item)
+        elif len(md_installations) == 0:
+            installations_dict["missing"].append(item)
+        # if there are too many installations, the object is ignored
 
-    lMD = []
-    for item in data_object:
-        qMD = (
-            session.query(
-                Collection.name,
-                DataObject.name,
-                DataObjectMeta.name,
-                DataObjectMeta.value,
-            )
-            .filter(
-                Criterion("=", Collection.name, item.path.replace("/" + item.name, ""))
-            )
-            .filter(Criterion("=", DataObject.name, item.name))
-            .filter(Criterion("=", DataObjectMeta.name, atr))
-        )
-        for item in qMD:
-            lMD.append(f"{item[DataObjectMeta.value]}")
-
-    if check_identical_list_elements(lMD):
-        return lMD
-    else:
-        print("Multiple dataverse installations found in metadata")
-        return []
+    return {k: v for k, v in installations_dict.items() if len(v) > 0}
 
 
 def get_data_object(session, object_location):
@@ -308,8 +291,8 @@ def setup(inp_dv, inp_tk):
         The message depends on the HTTP status for accessing the Dataverse installation.
         If the HTTP status is 200, then the process can continue and the user gets the path to metadata template they need to fill in for the selected Dataverse installation.
         If the HTTP status is not 200, the process cannot continue until the user can provide valid authentication credentials.
-    resp: list
-        The returns of authenticate_DV
+    api: list
+        object of class pyDataverse.api.NativeApi
     ds: class
         The class that is instantiated
     """
@@ -324,20 +307,19 @@ def setup(inp_dv, inp_tk):
         ds = instantiate_selected_class(inp_dv, config)
         # Gen information of the instantiated class
         BASE_URL = ds.baseURL
-        mdPath = ds.metadataTemplate
+        mdPath = ds.metadata_template
         # Authenticate to Dataverse installation
-        resp = authenticate_DV(BASE_URL, inp_tk)
-        if resp[0] == 200:
+        status, api = authenticate_DV(BASE_URL, inp_tk)
+        if status == 200:
             # If the user is authenticated, direct to the minimum metadata of the selected Dataverse installation
-            msg = f"Minimum metadata should be provided to proceed with the publication.\nPlease fill in the metadata template {mdPath}."
+            msg = f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {mdPath}."
         else:
             msg = "The authentication to the selected Dataverse installation failed."
     else:
         msg = "The Dataverse installation you selected is not configured."
-        resp = None
         ds = None
-
-    return print(msg), resp, ds
+    print(msg)
+    return api, ds
 
 
 def validate_md(ds, md):
@@ -355,8 +337,12 @@ def validate_md(ds, md):
     resp : bool
         It is `True` if the metadata template fits the Dataverse expectations and `False` if it does not.
     """
+    if isinstance(md, str):
+        md = read_file(md)
+    elif isinstance(md, dict):
+        md = json.dumps(md)
     try:
-        ds.from_json(read_file(md))
+        ds.from_json(md)
         resp = (
             ds.validate_json()
         )  # filename_schema = path to schema + ; with and without hidden class attributes
@@ -367,15 +353,15 @@ def validate_md(ds, md):
         return False
 
 
-def deposit_ds(api, inp_dv, ds):
+def deposit_ds(api, ds):
     """Create a Dataverse dataset with user specified metadata
 
     Parameters
     ----------
     api : list
         Status and pyDataverse object
-    inp_dv: str
-        The selected Dataverse installation
+    ds: Dataset
+        The Dataset for the selected Dataverse installation
 
     Returns
     -------
@@ -389,10 +375,10 @@ def deposit_ds(api, inp_dv, ds):
         Dataset Private URL
     """
 
-    resp = api.create_dataset(inp_dv.lower(), ds.json())
-    dsStatus = resp.json()["status"]
-    dsPID = resp.json()["data"]["persistentId"]
-    dsID = resp.json()["data"]["id"]
+    resp = api.create_dataset(ds.alias, ds.json()).json()
+    dsStatus = resp["status"]
+    dsPID = resp["data"]["persistentId"]
+    dsID = resp["data"]["id"]
     # resp = api.create_dataset_private_url(dsPID) # RDR does not allow PURL creation; move to Class definition?
     # dsPURL = resp.json()["data"]["link"]
 
@@ -428,17 +414,20 @@ def get_du_url(BASE_URL, dv_ds_DOI, df_size, header_key):
     """
 
     # request file direct upload
-    response1 = requests.get(
+    response = requests.get(
         f"{BASE_URL}/api/datasets/:persistentId/uploadurls?persistentId={dv_ds_DOI}&size={df_size}",
         headers=header_key,
     )
     # # verify status
     # print(str(response1))  # <Response [200]> ==> for user script
+    if response.status_code != 200:
+        raise ConnectionError("Something went wrong", response)
     # save the url
-    fileURL = response1.json()["data"]["url"]
-    strorageID = response1.json()["data"]["storageIdentifier"]
+    data = response.json()["data"]
+    fileURL = data["url"]
+    strorageID = data["storageIdentifier"]
 
-    return response1, fileURL, strorageID
+    return fileURL, strorageID
 
 
 def put_in_s3(obj, fileURL, headers_ct):
@@ -460,30 +449,28 @@ def put_in_s3(obj, fileURL, headers_ct):
     """
 
     # open the iRODS object
-    data = obj.open("r")
-    # PUT the file in S3
-    response2 = requests.put(
-        fileURL,
-        headers=headers_ct,
-        data=data,
-    )
-    # close the iRODS file
-    data.close()
+    with obj.open("r") as data:
+        # PUT the file in S3
+        response = requests.put(
+            fileURL,
+            headers=headers_ct,
+            data=data,
+        )
     # # verify status
     # print(str(response2))  # <Response [200]>  ==> for user script
 
-    return response2
+    return response
 
 
-def create_du_md(response1, obj, objMimetype, objChecksum):
+def create_du_md(storageID, objName, objMimetype, objChecksum):
     """Create direct upload metadata dictionary
 
     Parameters
     ----------
     response1: json
       json response of GET request for direct upload
-    obj: iRODSDataObject
-      the object meant for publication
+    objName: str
+      the name of the object to be stored
     objMimetype: str
       mimetype of iRODS object
     objSize: str
@@ -500,8 +487,8 @@ def create_du_md(response1, obj, objMimetype, objChecksum):
         "directoryLabel": "data/subdir1",  # TO DO: get from iRODS, based on the path of the file in a dataset
         "categories": ["Data"],
         "restrict": "false",
-        "storageIdentifier": response1.json()["data"]["storageIdentifier"],
-        "fileName": obj.name,
+        "storageIdentifier": storageID,
+        "fileName": objName,
         "mimeType": objMimetype,
         "checksum": {"@type": "SHA-256", "@value": objChecksum},
     }
@@ -534,7 +521,7 @@ def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
         "jsonData": (None, f"{obj_md_dict}"),
     }
     # send the POST request
-    response3 = requests.post(
+    response = requests.post(
         f"{BASE_URL}/api/datasets/:persistentId/add?persistentId={dv_ds_DOI}",
         headers=header_key,
         files=files,
@@ -542,7 +529,7 @@ def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
     # # verify status
     # print(str(response3))  # <Response [200]> ==> for user script
 
-    return response3
+    return response
 
 
 def save_df(data_object, trg_path, session):
@@ -598,6 +585,8 @@ def deposit_df(api, dsPID, data_object_name, inp_path):
     df.set({"pid": dsPID, "filename": data_object_name})
     df.get()
     resp = api.upload_datafile(dsPID, f"{inp_path}/{data_object_name}", df.json())
+    # if resp.status_code != 200: # deal with errors?
+    #     return resp
 
     print(f"{data_object_name} is uploaded")
 
@@ -665,3 +654,25 @@ def save_md(item, atr, val, op):
         print(type(e))
         print(f"An error occurred: {e}")
         return False
+
+
+def get_template(path_to_template, metadata):
+    """Turn a metadata dictionary into a .
+
+    Parameters
+    ----------
+    path_to_template : str
+        The path to the original template
+    metadata : dict
+        A simplified dictionary with metadata
+
+    Returns
+    -------
+    template: dict
+        A complete template as dictionary
+    """
+    with open(path_to_template) as f:
+        template = json.load(f)
+    # fill in template
+    fill_in_template(template, metadata)
+    return template

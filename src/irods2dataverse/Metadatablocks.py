@@ -24,14 +24,14 @@ class MetadataBlocks(object):
         }
         self.extra_fields = extra_fields
         self.check_extra_fields()
-        self.basic_blocks = [        #these are the blocks that you want to include for now we only use citation   
-          #  "geospatial",
-          #  "socialscience",
-          #  "astrophysics",
-          #  "biomedical",
-          #  "journal",
+        self.basic_blocks = [  # these are the blocks that you want to include for now we only use citation
+            #  "geospatial",
+            #  "socialscience",
+            #  "astrophysics",
+            #  "biomedical",
+            #  "journal",
             "citation",
-          #  "computationalworkflow",
+            #  "computationalworkflow",
         ]
         self.controlled_vocabularies = {}
         self.schema = ""
@@ -55,7 +55,7 @@ class MetadataBlocks(object):
                 self.dv_url = "https://demo.dataverse.nl/dataverse/root"
             case _:
                 exit(
-                    "this dataverse is not configured: the following installations are available: demo, RDR, RDR-Pilot, Harvard, DANS"
+                    "this dataverse is not configured: the following installations are available: Demo, RDR, RDR-pilot, Harvard, DANS"
                 )
 
     def check_extra_fields(self):
@@ -410,4 +410,3 @@ if __name__ == "__main__":
     blocks.create_json_to_upload()
     blocks.fill_in_md_template()
     # blocks.get_controlled_vocabularies()
-  

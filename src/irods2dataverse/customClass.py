@@ -1,16 +1,31 @@
 from pyDataverse.models import Dataset
+import os.path
+
+assets_paths = "doc/metadata/"
 
 
-class DemoDataset(Dataset):
+class CustomDataset(Dataset):
+
+    @property
+    def metadata_template(self):
+        return os.path.join(assets_paths, self._metadataTemplate)
+
+    @property
+    def mango_schema(self):
+        return os.path.join(assets_paths, self._mangoSchema)
+
+
+class DemoDataset(CustomDataset):
     def __init__(self, data=None):
         super().__init__(data=None)
         self.alias = "demo"
         self.name = "DemoDataset"
         self.baseURL = "https://demo.dataverse.org"
-        self.metadataTemplate = "doc/metadata/template_Demo.json"
+        self._metadataTemplate = "template_Demo.json"
+        self._mangoSchema = "mango2dv-demo-1.0.0-published.json"
 
 
-class RDRDataset(Dataset):
+class RDRDataset(CustomDataset):
 
     def __init__(self, data=None):
         #  super extends the original constructor otherwise replacing
@@ -34,7 +49,8 @@ class RDRDataset(Dataset):
         self.alias = "rdr"
         self.name = "RDRDataset"
         self.baseURL = "https://rdr.kuleuven.be/"
-        self.metadataTemplate = "doc/metadata/template_RDR.json"
+        self._metadataTemplate = "template_RDR.json"
+        self._mangoSchema = "mango2dv-rdr-1.0.0-published.json"
 
 
 class RDRPilotDataset(RDRDataset):
@@ -43,4 +59,5 @@ class RDRPilotDataset(RDRDataset):
         self.alias = "rdr"
         self.name = "RDRPilotDataset"
         self.baseURL = "https://www.rdm.libis.kuleuven.be/"
-        self.metadataTemplate = "doc/metadata/template_RDR-pilot.json"
+        self.metadataTemplate = "template_RDR-pilot.json"
+        self._mangoSchema = "mango2dv-rdr-1.0.0-published.json"

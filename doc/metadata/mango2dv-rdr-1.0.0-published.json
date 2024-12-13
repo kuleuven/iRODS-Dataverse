@@ -1,5 +1,5 @@
 {
-  "schema_name": "mango2dv-rdr",
+  "schema_name": "publish2rdr",
   "version": "1.0.0",
   "status": "published",
   "properties": {
@@ -32,6 +32,7 @@
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": false,
       "help": "The entity, e.g. person or organization, that created the Dataset"
     },
@@ -56,6 +57,7 @@
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": false,
       "help": "The entity, e.g. person or organization, that users of the Dataset can contact with questions"
     },
@@ -72,6 +74,7 @@
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": true,
       "help": "A summary describing the purpose, nature, and scope of the Dataset"
     },
@@ -83,10 +86,12 @@
           "type": "text",
           "placeholder": "",
           "pattern": "",
-          "required": true
+          "required": true,
+          "help": "Input type: text"
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": true,
       "help": "A keyword to help find the dataset."
     },
@@ -95,10 +100,11 @@
       "type": "text",
       "placeholder": "csv, tiff, pdf...",
       "pattern": "",
-      "required": true
+      "required": true,
+      "help": "Input type: text"
     },
     "access": {
-      "title": "Keyword",
+      "title": "Access",
       "properties": {
         "accessRights": {
           "title": "Access Rights",
@@ -111,15 +117,37 @@
           ],
           "multiple": false,
           "ui": "radio"
+        },
+        "dateAvailable": {
+          "title": "Date Available",
+          "type": "datetime-local",
+          "placeholder": "",
+          "pattern": "",
+          "help": "Input type is datetime-local, leave as empty string if access is open."
+        },
+        "legitimateOptout": {
+          "title": "Legitimate Opt-out",
+          "type": "select",
+          "values": [
+            "privacy",
+            "intellectual property rights",
+            "ethical aspects",
+            "aspects of dual use",
+            "other"
+          ],
+          "multiple": false,
+          "ui": "radio",
+          "help": "Choose one of 5 options, choose other if access is open."
         }
       },
       "type": "object",
+      "required": false,
       "repeatable": false,
       "help": "Access rights to the dataset."
     }
   },
-  "edited_by": "u0118974",
+  "edited_by": "u0112360",
   "realm": "datateam_set",
-  "title": "ManGO Dataset to RDR",
-  "parent": "mango2dv-demo-1.0.0"
+  "title": "ManGO Dataset to Dataverse RDR",
+  "parent": ""
 }

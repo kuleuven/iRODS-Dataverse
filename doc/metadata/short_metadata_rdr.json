@@ -1,0 +1,31 @@
+{
+    "access": {
+        "accessRights": "open",
+        "dateAvailable": "",
+        "legitimateOptout": "other"
+    },
+    "author": [
+        {
+            "authorAffiliation": "KU Leuven",
+            "authorName": "Kafetzaki, Danai"
+        }
+    ],
+    "datasetContact": [
+        {
+            "datasetContactEmail": "danai.kafetzaki@kuleuven.be",
+            "datasetContactName": "Kafetzaki, Danai"
+        }
+    ],
+    "dsDescription": [
+        {
+            "dsDescriptionValue": "This is a minimal end-to-end implementation for iRODS-Dataverse integration, a KU Leuven and SURF collaboration"
+        }
+    ],
+    "keyword": [
+        {
+            "keywordValue": "required-keyword"
+        }
+    ],
+    "technicalFormat": "json",
+    "title": "Demo - 09 December 2024"
+}
