@@ -203,8 +203,16 @@ def ask_metadata(path_to_template, path_to_schema, data_objects_list):
         "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
     ):
         # get metadata
-        metadata = avu2json.parse_mango_metadata(path_to_schema, data_objects_list[0])
+        for data_object in data_objects_list:
+            metadata = avu2json.parse_mango_metadata(path_to_schema, data_object)
+            if metadata:
+                break
         # get template
+        if not metadata:
+            c.print(
+                "Sorry, no schema metadata for this Dataverse installation was found, let's try again!"
+            )
+            return ask_metadata(path_to_template, path_to_schema, data_objects_list)
         md = functions.get_template(path_to_template, metadata)
 
     else:
