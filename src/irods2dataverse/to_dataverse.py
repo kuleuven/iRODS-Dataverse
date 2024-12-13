@@ -98,6 +98,7 @@ def setup(inp_dv, inp_tk):
     else:
         msg = "The Dataverse installation you selected is not configured."
         ds = None
+        api = None
     print(msg)
     return api, ds
 
