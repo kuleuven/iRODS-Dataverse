@@ -121,3 +121,8 @@ can be provided in this step.
 ## Visual overview of the pipeline options
 
 <img src="./doc/img/20241108_pipeline_options.png" alt="overview-pipeline-options" style="height: 794px; width: 728px;"/>
+
+# Configuring another installation
+
+If you want to configure this script to work with other Dataverse installations,
+look at [the custom classes](./src/irods2dataverse/customClass.py) or [contact us](mailto:rdm-icts@kuleuven.be).
