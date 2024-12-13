@@ -4,7 +4,7 @@
             "citation": {
                 "fields": [
                     {
-                        "value": "Demo for 02 April 2024",
+                        "value": "...Title...",
                         "typeClass": "primitive",
                         "multiple": false,
                         "typeName": "title"
@@ -13,13 +13,13 @@
                         "value": [
                             {
                                 "authorName": {
-                                    "value": "Kafetzaki, Danai",
+                                    "value": "...LastName..., ...FirstName...",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "authorName"
                                 },
                                 "authorAffiliation": {
-                                    "value": "KU Leuven",
+                                    "value": "...Affiliation...",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "authorAffiliation"
@@ -34,13 +34,13 @@
                         "value": [
                             {
                                 "datasetContactEmail": {
-                                    "value": "danai.kafetzaki@kuleuven.be",
+                                    "value": "...Email...",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "datasetContactEmail"
                                 },
                                 "datasetContactName": {
-                                    "value": "Kafetzaki, Danai",
+                                    "value": "...LastName..., ...FirstName...",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "datasetContactName"
@@ -55,7 +55,7 @@
                         "value": [
                             {
                                 "dsDescriptionValue": {
-                                    "value": "This is a minimal end-to-end implementation for iRODS-Dataverse integartion, a KU Leuven and SURF collaboration",
+                                    "value": "...Description...",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "dsDescriptionValue"
@@ -68,7 +68,7 @@
                     },
                     {
                         "value": [
-                            "Demo Only"
+                            "...One-of-the-subjects-at-/doc/metadata/CVs/subjects_Demo.json..."
                         ],
                         "typeClass": "controlledVocabulary",
                         "multiple": true,
