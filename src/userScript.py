@@ -253,10 +253,6 @@ for item in data_objects_list:
 
 
 c.print(
-    f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
-    style=info,
-)
-c.print(
     f"The Dataset DOI is added as metadata to the selected data objects.",
     style=info,
 )

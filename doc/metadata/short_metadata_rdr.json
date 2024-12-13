@@ -1,6 +1,8 @@
 {
     "access": {
-        "accessRights": "open"
+        "accessRights": "open",
+        "dateAvailable": "",
+        "legitimateOptout": "other"
     },
     "author": [
         {

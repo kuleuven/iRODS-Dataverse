@@ -523,7 +523,7 @@ def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
     # send the POST request
     response = requests.post(
         f"{BASE_URL}/api/datasets/:persistentId/add?persistentId={dv_ds_DOI}",
-        header=header_key,
+        headers=header_key,
         files=files,
     )
     # # verify status

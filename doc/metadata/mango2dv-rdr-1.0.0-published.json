@@ -123,7 +123,7 @@
           "type": "datetime-local",
           "placeholder": "",
           "pattern": "",
-          "help": "Input type: datetime-local"
+          "help": "Input type is datetime-local, leave as empty string if access is open."
         },
         "legitimateOptout": {
           "title": "Legitimate Opt-out",
@@ -137,7 +137,7 @@
           ],
           "multiple": false,
           "ui": "radio",
-          "help": "Choose one of 5 options."
+          "help": "Choose one of 5 options, choose other if access is open."
         }
       },
       "type": "object",
