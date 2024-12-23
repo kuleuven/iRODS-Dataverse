@@ -12,16 +12,7 @@ from irods2dataverse import customClass
 
 # test validating against the Demo class
 class TestMdValidation(unittest.TestCase):
-    """Test the following in validate_md()
-
-    1. That when `md` is a string it will try to read the file
-      1a. It will work when the path is valid
-      1b. It will fail when the path is not valid (`read_file()` will?)
-    2. That when `md` is a dictionary, it will still read the metadata
-      2a. It will work when the metadata is valid
-      2b. It will fail when it is not valid
-    3. If the installation is RDR, RDR metadata should pass and Demo metadata should fail
-    4. If the installation is Demo, Demo metadata should pass and RDR metadata should fail
+    """Test dataset properties and validation
     No need to test long and short, or ManGO md, since this is covered by avu2json
     """
 
@@ -54,6 +45,9 @@ class TestMdValidation(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
+
+
+# For new classes, create a new child of TestMdValidation with the appropriate attributes
 
 
 class TestMdValidationRDR(TestMdValidation):
