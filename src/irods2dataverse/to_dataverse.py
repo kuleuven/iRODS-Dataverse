@@ -7,7 +7,7 @@ from configparser import ConfigParser
 
 
 def authenticate_DV(url, tk):
-    """Check that the use can be authenticated to Dataverse.
+    """Establish a session for the selected Dataverse installation and check that the use can be authenticated to Dataverse.
 
     Parameters
     ----------
@@ -59,14 +59,13 @@ def instantiate_selected_class(installationName, config):
     return selectedClass()
 
 
-def get_dataset(inp_dv):
-    """Establish a session for the selected Dataverse installation and create an empty dataset.
+def get_dataset(input_dataverse):
+    """Create an empty dataset in teh selected Dataverse installation.
 
      Parameters
      ----------
-     inp_dv: str
+     input_dataverse: str
         The target Dataverse installation
-        The user token
 
     Returns
     -------
@@ -78,31 +77,15 @@ def get_dataset(inp_dv):
     config = ConfigParser()
     config.read(str(files("resources").joinpath("customization.ini")))
     # Check that the Dataverse installation is configured
-    if inp_dv not in config.sections():
+    if input_dataverse not in config.sections():
         print("The Dataverse installation you selected is not configured.")
         return None
     # Instantiate the Dataset class of the selected Dataverse installation
-    ds = instantiate_selected_class(inp_dv, config)
+    ds = instantiate_selected_class(input_dataverse, config)
     # Gen information of the instantiated class
     print("The selected Dataverse installation is configured")
     # Authenticate to Dataverse installation
     return ds
-
-
-def get_api(ds, inp_tk):
-    """Establish a session for the selected Dataverse installation and create an empty dataset.
-
-     Parameters
-     ----------
-     ds: Dataset
-        A Dataverse installation
-     inp_tk: str
-        The user token
-
-    Returns
-    -------
-    api: pyDataverse.api.NativeApi
-    """
 
 
 def validate_md(ds, md):

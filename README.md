@@ -47,9 +47,9 @@ and retrieve the metadata field `dv.installation`. If it is not valid or missing
 
 5. Gather the metadata needed to create a draft in the selected Dataverse installation.
 ManGO users can use a [metadata schema](./doc/metadata/mango2dv-rdr-1.0.0-published.json) to add the
-metadata to the first object of the list. Alternatively, users can fill in a template
-or create a JSON file with the minimal metadata. For example, the text below shows metadata for
-the Demo installation:
+metadata to any object of the list. Alternatively, users can copy the metadata template and fill it in,
+or create a shorter JSON file with the minimal metadata. For example, the text below shows the contents of the short 
+JSON file, with metadata for the Demo installation:
 
 ```json
 {
@@ -73,7 +73,7 @@ the Demo installation:
 }
 ```
 
-This would be the example for RDR:
+For RDR, the short JSON file would have, for example, the following contents:
 
 ```json
 {
@@ -109,8 +109,8 @@ This would be the example for RDR:
 }
 ```
 
-If you copy the text above and adapt the values into a text file, the path to that file
-can be provided in this step.
+To work with the short JSON file, copy the text above and adapt the values into a text file.
+For either the short JSON or the long JSON matching the template, provide the path to that file to complete this step.
 
 6. Validate the metadata.
 
@@ -118,7 +118,7 @@ can be provided in this step.
 
 8. Update the metadata of the data objects with the DOI provided by Dataverse.
 
-## Visual overview of the pipeline options
+## Visual overview of the available pipeline options
 
 <img src="./doc/img/20241108_pipeline_options.png" alt="overview-pipeline-options" style="height: 794px; width: 728px;"/>
 

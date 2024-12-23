@@ -132,29 +132,29 @@ if __name__ == "__main__":
     print(
         "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
     )
-    atr_dv = "dv.installation"
+    atr_dataverse = "dv.installation"
     installations = ["RDR", "Demo", "RDR-pilot"]
-    ldv = from_irods.query_dv(atr_dv, data_objects_list, installations)
+    ldv = from_irods.query_dv(atr_dataverse, data_objects_list, installations)
     if len(ldv) == 1 and "missing" not in ldv:
-        inp_dv = list(ldv.keys())[0]
+        input_dataverse = list(ldv.keys())[0]
         c.print(
-            f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> for the selected data objects are found in iRODS.",
+            f"Metadata with attribute <{atr_dataverse}> and value <{input_dataverse}> for the selected data objects are found in iRODS.",
             style=info,
         )
     else:
         if len(ldv) > 1:
             c.print(f"Not all the data objects are assigned to the same installation.")
         else:
-            c.print(f"The selected objects have no attribute <{atr_dv}>.", style=action)
+            c.print(f"The selected objects have no attribute <{atr_dataverse}>.", style=action)
         data_objects_list = []
-        inp_dv = Prompt.ask(
+        input_dataverse = Prompt.ask(
             "Specify the configured Dataverse installation to publish the data",
             choices=installations,
             default="Demo",
         )
-        if inp_dv in ldv:
-            data_objects_list = ldv[inp_dv]
-            c.print(f"{len(ldv[inp_dv])} items were tagged for this installation.")
+        if input_dataverse in ldv:
+            data_objects_list = ldv[input_dataverse]
+            c.print(f"{len(ldv[input_dataverse])} items were tagged for this installation.")
         if "missing" in ldv:
             if len(ldv) > 1:
                 add_missing = Confirm.ask(
@@ -164,32 +164,32 @@ if __name__ == "__main__":
                 add_missing = True
             if add_missing:
                 for item in ldv["missing"]:
-                    from_irods.save_md(item, atr_dv, inp_dv, op="set")
+                    from_irods.save_md(item, atr_dataverse, input_dataverse, op="set")
                     data_objects_list.append(item)
                 c.print(
-                    f"Metadata with attribute <{atr_dv}> and value <{inp_dv}> are added in the selected data objects.",
+                    f"Metadata with attribute <{atr_dataverse}> and value <{input_dataverse}> are added in the selected data objects.",
                     style=action,
                 )
 
     # --- Set-up for the selected Dataverse installation --- #
     print(
-        f"Provide your Token for <{inp_dv}> Dataverse installation or the name of its environment variable."
+        f"Provide your Token for <{input_dataverse}> Dataverse installation or the name of its environment variable."
     )
     token = maskpass.askpass(prompt="", mask="*")
     token = os.getenv(token, token)
 
-    # these functions also validate that the selected Dataverse installations is configured.
-
-    ds = to_dataverse.get_dataset(inp_dv)
-    api = to_dataverse.authenticate_DV(ds.baseURL, token)
-    c.print(
-        f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {ds.metadata_template}."
-    )
-    # get the path for the first data object in the list
-    # check the metadata only from the first object in the list
-    # print(logical_path.path)
+    # --- Validate that the selected Dataverse installations is configured and create a Dataset --- #
+    ds = to_dataverse.get_dataset(input_dataverse)
     path_to_schema = ds.mango_schema
     path_to_template = ds.metadata_template
+
+    # --- Create a Dataverse session --- #
+    api = to_dataverse.authenticate_DV(ds.baseURL, token)
+
+    # --- Provide information on the obligatory metadata --- #
+    c.print(
+        f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {path_to_template}."
+    )
 
     # --- Create information to pass on the header for direct upload --- #
     header_key, header_ct = direct_upload.create_headers(token)
@@ -217,7 +217,7 @@ if __name__ == "__main__":
             md = ""
             while not os.path.exists(md):
                 md = Prompt.ask(
-                    f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be the simplified version (ADD REFERENCE to documentation or to the example file e.g. doc/metadata/short_metadata_demo.json).""",
+                    f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be the simplified (short JSON) version.""",
                     default=path_to_template,
                 )
             with open(md, "r") as f:
@@ -268,7 +268,7 @@ if __name__ == "__main__":
 
     trg_path = "doc/data"
 
-    if inp_dv == "Demo":
+    if input_dataverse == "Demo":
         ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
         for item in data_objects_list:
             # Save data locally
