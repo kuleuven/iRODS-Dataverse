@@ -1,18 +1,17 @@
 from pyDataverse.models import Dataset
 import os.path
-
-assets_paths = "doc/metadata/"
+from importlib.resources import files
 
 
 class CustomDataset(Dataset):
 
     @property
     def metadata_template(self):
-        return os.path.join(assets_paths, self._metadataTemplate)
+        return files("resources").joinpath(self._metadataTemplate)
 
     @property
     def mango_schema(self):
-        return os.path.join(assets_paths, self._mangoSchema)
+        return files("resources").joinpath(self._mangoSchema)
 
 
 class DemoDataset(CustomDataset):

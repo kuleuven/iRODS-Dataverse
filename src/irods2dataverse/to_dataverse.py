@@ -1,4 +1,5 @@
 import json
+from importlib.resources import files
 from pyDataverse.api import NativeApi
 from pyDataverse.models import Datafile
 from pyDataverse.utils import read_file
@@ -79,7 +80,7 @@ def setup(inp_dv, inp_tk):
 
     # read once the configuration file located in a hard-coded path
     config = ConfigParser()
-    config.read("src/irods2dataverse/customization.ini")
+    config.read(str(files("resources").joinpath("customization.ini")))
     # Check that the Dataverse installation is configured
     if inp_dv in config.sections():
         print("The selected Dataverse installation is configured")
