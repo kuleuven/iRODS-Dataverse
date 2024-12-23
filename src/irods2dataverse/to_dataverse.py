@@ -70,8 +70,8 @@ def get_dataset(inp_dv):
 
     Returns
     -------
-    ds: class
-        The class that is instantiated
+    ds: CustomDataset
+        An instance of a selected class.
     """
 
     # read once the configuration file located in a hard-coded path
@@ -87,22 +87,6 @@ def get_dataset(inp_dv):
     print("The selected Dataverse installation is configured")
     # Authenticate to Dataverse installation
     return ds
-
-
-def get_api(ds, inp_tk):
-    """Establish a session for the selected Dataverse installation and create an empty dataset.
-
-     Parameters
-     ----------
-     ds: Dataset
-        A Dataverse installation
-     inp_tk: str
-        The user token
-
-    Returns
-    -------
-    api: pyDataverse.api.NativeApi
-    """
 
 
 def validate_md(ds, md):
