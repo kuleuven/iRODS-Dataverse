@@ -26,9 +26,12 @@ def authenticate_DV(url, tk):
 
     api = NativeApi(url, tk)
     resp = api.get_info_version()
-    status = resp.status_code
 
-    return status, api
+    if resp.status_code != 200:
+        raise ConnectionRefusedError(
+            "The authentication to the selected Dataverse installation failed."
+        )
+    return api
 
 
 def instantiate_selected_class(installationName, config):
@@ -56,24 +59,17 @@ def instantiate_selected_class(installationName, config):
     return selectedClass()
 
 
-def setup(inp_dv, inp_tk):
+def get_dataset(inp_dv):
     """Establish a session for the selected Dataverse installation and create an empty dataset.
 
      Parameters
      ----------
      inp_dv: str
         The target Dataverse installation
-     inp_tk: str
         The user token
 
     Returns
     -------
-    msg: str
-        The message depends on the HTTP status for accessing the Dataverse installation.
-        If the HTTP status is 200, then the process can continue and the user gets the path to metadata template they need to fill in for the selected Dataverse installation.
-        If the HTTP status is not 200, the process cannot continue until the user can provide valid authentication credentials.
-    api: list
-        object of class pyDataverse.api.NativeApi
     ds: class
         The class that is instantiated
     """
@@ -82,26 +78,31 @@ def setup(inp_dv, inp_tk):
     config = ConfigParser()
     config.read(str(files("resources").joinpath("customization.ini")))
     # Check that the Dataverse installation is configured
-    if inp_dv in config.sections():
-        print("The selected Dataverse installation is configured")
-        # Instantiate the Dataset class of the selected Dataverse installation
-        ds = instantiate_selected_class(inp_dv, config)
-        # Gen information of the instantiated class
-        BASE_URL = ds.baseURL
-        mdPath = ds.metadata_template
-        # Authenticate to Dataverse installation
-        status, api = authenticate_DV(BASE_URL, inp_tk)
-        if status == 200:
-            # If the user is authenticated, direct to the minimum metadata of the selected Dataverse installation
-            msg = f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {mdPath}."
-        else:
-            msg = "The authentication to the selected Dataverse installation failed."
-    else:
-        msg = "The Dataverse installation you selected is not configured."
-        ds = None
-        api = None
-    print(msg)
-    return api, ds
+    if inp_dv not in config.sections():
+        print("The Dataverse installation you selected is not configured.")
+        return None
+    # Instantiate the Dataset class of the selected Dataverse installation
+    ds = instantiate_selected_class(inp_dv, config)
+    # Gen information of the instantiated class
+    print("The selected Dataverse installation is configured")
+    # Authenticate to Dataverse installation
+    return ds
+
+
+def get_api(ds, inp_tk):
+    """Establish a session for the selected Dataverse installation and create an empty dataset.
+
+     Parameters
+     ----------
+     ds: Dataset
+        A Dataverse installation
+     inp_tk: str
+        The user token
+
+    Returns
+    -------
+    api: pyDataverse.api.NativeApi
+    """
 
 
 def validate_md(ds, md):

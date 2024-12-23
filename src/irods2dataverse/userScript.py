@@ -177,10 +177,14 @@ if __name__ == "__main__":
     )
     token = maskpass.askpass(prompt="", mask="*")
     token = os.getenv(token, token)
-    api, ds = to_dataverse.setup(
-        inp_dv, token
-    )  # this function also validates that the selected Dataverse installations is configured.
 
+    # these functions also validate that the selected Dataverse installations is configured.
+
+    ds = to_dataverse.get_dataset(inp_dv)
+    api = to_dataverse.authenticate_DV(ds.baseURL, token)
+    c.print(
+        f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {ds.metadata_template}."
+    )
     # get the path for the first data object in the list
     # check the metadata only from the first object in the list
     # print(logical_path.path)
