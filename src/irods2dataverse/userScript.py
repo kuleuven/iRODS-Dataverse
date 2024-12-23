@@ -2,6 +2,9 @@ from irods2dataverse import from_irods, to_dataverse, direct_upload, avu2json
 import json
 import maskpass
 import datetime
+import tempfile
+import shutil
+
 import os.path
 from rich.console import Console
 from rich.style import Style
@@ -279,8 +282,7 @@ if __name__ == "__main__":
     )
 
     # --- Upload data files --- #
-
-    trg_path = "doc/data"
+    trg_path = tempfile.mkdtemp("dataverse_files")
 
     if input_dataverse == "Demo":
         ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
@@ -297,6 +299,7 @@ if __name__ == "__main__":
             from_irods.save_md(
                 item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
             )
+        shutil.rmtree(trg_path)
     else:
         ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
         # --- Create information to pass on the header for direct upload --- #
