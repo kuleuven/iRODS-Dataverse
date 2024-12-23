@@ -8,6 +8,7 @@ from rich.style import Style
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
+from rich.padding import Padding
 
 
 # Test with 2 files /set/home/datateam_set/iRODS2DV/20240718_demo
@@ -24,8 +25,14 @@ warning = Style(color="red")
 panel_blue = Style(color="white", bold=True, bgcolor="blue")
 panel_black = Style(color="white", bgcolor="black")
 
+
 # create a rich console
 c = Console()
+
+
+def vertical_space(text, style="default", below=0, left=1):
+    return c.print(Padding(text, (1, left, below, 0), style=style))
+
 
 # --- Print instructions for the metadata-driven process --- #
 c.print(
@@ -47,7 +54,7 @@ The configured Dataverse installations are: Demo, RDR, RDR-pilot
 if __name__ == "__main__":
     # --- Provide the iRODS environment file to authenticate in a specific zone --- #
 
-    print("\nAuthenticate to iRODS zone...")
+    vertical_space("Authenticate to iRODS zone...")
     session = from_irods.authenticate_iRODS(
         os.path.expanduser("~") + "/.irods/irods_environment.json"
     )
@@ -58,7 +65,7 @@ if __name__ == "__main__":
 
     # --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
 
-    print(
+    vertical_space(
         "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
     )
 
@@ -69,15 +76,20 @@ if __name__ == "__main__":
         atr_publish, val, session
     )  # look for data based on A = dv.publication & value = initiated
 
-    if len(data_objects_list) == 0:  # ldt = qdata
+    if len(data_objects_list) > 0:  # ldt = qdata
+        c.print(
+            f"Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.",
+            style=info,
+        )
+    else:
         c.print(
             f"No metadata with attribute <{atr_publish}> and value <{val}> are found.",
             style=info,
         )
-        add = True
-        while add:
-            inp_i = input(
-                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations:\n"
+        while True:
+            vertical_space("")
+            inp_i = Prompt.ask(
+                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations"
             )
             try:
                 obj = session.data_objects.get(inp_i)
@@ -96,12 +108,8 @@ if __name__ == "__main__":
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
-            add = Confirm.ask("Add more objects? y/n\n")
-    else:
-        c.print(
-            f"Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.",
-            style=info,
-        )
+            if not inp_i and len(data_objects_list) > 0:
+                break
 
     # --- Print a table of the selected data --- #
     c.print("The following objects are selected for publication:", style=info)
@@ -122,14 +130,15 @@ if __name__ == "__main__":
         from_irods.save_md(
             item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
         )
+        vertical_space("")
 
-    c.print(
+    vertical_space(
         f"Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.",
         style=info,
     )
 
     # --- Select Dataverse: if there is no object metadata specifying the Dataverse installation, ask for user input --- #
-    print(
+    vertical_space(
         "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
     )
     atr_dataverse = "dv.installation"
@@ -137,15 +146,20 @@ if __name__ == "__main__":
     ldv = from_irods.query_dv(atr_dataverse, data_objects_list, installations)
     if len(ldv) == 1 and "missing" not in ldv:
         input_dataverse = list(ldv.keys())[0]
-        c.print(
+        vertical_space(
             f"Metadata with attribute <{atr_dataverse}> and value <{input_dataverse}> for the selected data objects are found in iRODS.",
             style=info,
         )
     else:
         if len(ldv) > 1:
-            c.print(f"Not all the data objects are assigned to the same installation.")
+            vertical_space(
+                f"Not all the data objects are assigned to the same installation."
+            )
         else:
-            c.print(f"The selected objects have no attribute <{atr_dataverse}>.", style=action)
+            vertical_space(
+                f"The selected objects have no attribute <{atr_dataverse}>.",
+                style=action,
+            )
         data_objects_list = []
         input_dataverse = Prompt.ask(
             "Specify the configured Dataverse installation to publish the data",
@@ -154,7 +168,9 @@ if __name__ == "__main__":
         )
         if input_dataverse in ldv:
             data_objects_list = ldv[input_dataverse]
-            c.print(f"{len(ldv[input_dataverse])} items were tagged for this installation.")
+            c.print(
+                f"{len(ldv[input_dataverse])} items were tagged for this installation."
+            )
         if "missing" in ldv:
             if len(ldv) > 1:
                 add_missing = Confirm.ask(
@@ -172,7 +188,7 @@ if __name__ == "__main__":
                 )
 
     # --- Set-up for the selected Dataverse installation --- #
-    print(
+    vertical_space(
         f"Provide your Token for <{input_dataverse}> Dataverse installation or the name of its environment variable."
     )
     token = maskpass.askpass(prompt="", mask="*")
@@ -187,12 +203,9 @@ if __name__ == "__main__":
     api = to_dataverse.authenticate_DV(ds.baseURL, token)
 
     # --- Provide information on the obligatory metadata --- #
-    c.print(
+    vertical_space(
         f"Minimum metadata should be provided to proceed with the publication.\nThe metadata template can be found in {path_to_template}."
     )
-
-    # --- Create information to pass on the header for direct upload --- #
-    header_key, header_ct = direct_upload.create_headers(token)
 
     # --- Retrieve filled-in metadata --- #
     def ask_metadata(path_to_template, path_to_schema, data_objects_list):
@@ -237,29 +250,30 @@ if __name__ == "__main__":
     md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
     vmd = to_dataverse.validate_md(ds, md)
     while not (vmd):
-        c.print(
+        vertical_space(
             f"The metadata are not validated, modify <{md}>, save and hit enter to continue.",
             style=info,
         )
         md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
         vmd = to_dataverse.validate_md(ds, md)
-    c.print(f"The metadata are validated, the process continues.", style=info)
+    vertical_space(f"The metadata are validated, the process continues.", style=info)
 
     # --- Deposit draft in selected Dataverse installation --- #
     dsStatus, dsPID, dsID = to_dataverse.deposit_ds(api, ds)
-    c.print(
+    vertical_space(
         f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
         style=info,
     )
 
     # --- Add metadata in iRODS --- #
     for item in data_objects_list:
+        vertical_space("")
         # Dataset DOI
         from_irods.save_md(item, "dv.ds.DOI", dsPID, op="add")
         # # Dataset PURL
         # from_irods.save_md(item, "dv.ds.PURL", dsPURL, op="set")
 
-    c.print(
+    vertical_space(
         f"The Dataset DOI is added as metadata to the selected data objects.",
         style=info,
     )
@@ -271,6 +285,7 @@ if __name__ == "__main__":
     if input_dataverse == "Demo":
         ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
         for item in data_objects_list:
+            vertical_space("")
             # Save data locally
             from_irods.save_df(item, trg_path, session)  # download object locally
             # Upload file(s)
@@ -284,7 +299,10 @@ if __name__ == "__main__":
             )
     else:
         ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
+        # --- Create information to pass on the header for direct upload --- #
+        header_key, header_ct = direct_upload.create_headers(token)
         for item in data_objects_list:
+            vertical_space("")
             objChecksum, objMimetype, objSize = from_irods.get_object_info(item)
             fileURL, storageID = direct_upload.get_du_url(
                 ds.baseURL, dsPID, objSize, header_key
@@ -312,7 +330,7 @@ if __name__ == "__main__":
     #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
     # )
 
-    c.print(
+    vertical_space(
         f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
         style=info,
     )
