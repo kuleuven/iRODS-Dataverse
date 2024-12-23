@@ -110,6 +110,9 @@ For RDR, the short JSON file would have, for example, the following contents:
 ```
 
 To work with the short JSON file, copy the text above and adapt the values into a text file.
+
+For the RDR long template, when the _access rights_ are open, omit the fields regarding _available date_ and _legitimate opt-out_.
+
 For either the short JSON or the long JSON matching the template, provide the path to that file to complete this step.
 
 6. Validate the metadata.
