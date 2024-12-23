@@ -8,6 +8,8 @@ from irods2dataverse.to_dataverse import (
     validate_md,
 )
 from irods2dataverse import customClass
+from unittest.mock import patch, Mock
+from irods2dataverse.to_dataverse import deposit_ds
 
 
 # test validating against the Demo class
@@ -66,3 +68,24 @@ class TestMdValidationRDRPilot(TestMdValidation):
         self.expected_class = customClass.RDRPilotDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
+
+
+class TestAPI(unittest.TestCase):
+
+    @patch("irods2dataverse.to_dataverse.NativeApi")
+    def test_deposit(self, api):
+        api.create_dataset.return_value.json.return_value = {
+            "status": 200,
+            "data": {"persistentId": "someid", "id": "anotherid"},
+        }
+        ds = get_dataset("Demo")
+        dsStatus, dsPID, dsID = deposit_ds(api, ds)
+        self.assertEqual(dsStatus, 200)
+        self.assertEqual(dsPID, "someid")
+        self.assertEqual(dsID, "anotherid")
+
+    # md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
+
+    # fileURL, storageID = direct_upload.get_du_url(
+    #             ds.baseURL, dsPID, objSize, header_key
+    #         )
