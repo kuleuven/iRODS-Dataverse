@@ -4,7 +4,7 @@ from pyDataverse.models import Dataset
 import requests  # http://docs.python-requests.org/en/master/
 
 
-class MetadataBlocks(object):
+class Metadatablocks(object):
     """
     class to request metadatablocks from dv installation, clean response, create uploadable template, prompt users for
     input & validate using jsonschema
@@ -312,6 +312,7 @@ class MetadataBlocks(object):
 
             with open(file_name, "w") as f:
                 json.dump(dataset, f)
+                
 
     def show_controlled_vocabularies(self, name):
         match name:
