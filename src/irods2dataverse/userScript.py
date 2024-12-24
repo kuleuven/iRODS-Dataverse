@@ -79,7 +79,7 @@ if __name__ == "__main__":
         atr_publish, val, session
     )  # look for data based on A = dv.publication & value = initiated
 
-    if len(data_objects_list) > 0:  # ldt = qdata
+    if len(data_objects_list) > 0:
         c.print(
             f"Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.",
             style=info,
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
-            if not inp_i and len(data_objects_list) > 0:
+            if len(data_objects_list) > 0:
                 break
 
     # --- Print a table of the selected data --- #
@@ -292,7 +292,6 @@ if __name__ == "__main__":
             from_irods.save_df(item, trg_path, session)  # download object locally
             # Upload file(s)
             md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
-            print(md)
             # Update status of publication in iRODS from 'processed' to 'deposited'
             from_irods.save_md(item, atr_publish, "deposited", op="set")
             # Update timestamp
