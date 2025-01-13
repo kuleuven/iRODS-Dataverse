@@ -69,8 +69,8 @@ def get_dataset(input_dataverse):
 
     Returns
     -------
-    ds: class
-        The class that is instantiated
+    ds: CustomDataset
+        An instance of a selected class.
     """
 
     # read once the configuration file located in a hard-coded path
@@ -109,10 +109,7 @@ def validate_md(ds, md):
         md = json.dumps(md)
     try:
         ds.from_json(md)
-        resp = (
-            ds.validate_json()
-        )  # filename_schema = path to schema + ; with and without hidden class attributes
-        return resp
+        return ds.validate_json()
     except Exception as e:  # change this to specific exception
         print(type(e))
         print(f"An error occurred: {e}")
