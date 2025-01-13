@@ -23,7 +23,6 @@ repository = "https://github.com/kuleuven/iRODS-Dataverse"
 dependencies = {file = ["requirements.txt"]}
 optional-dependencies.dev = { file = ["requirements-dev.txt"] }
 
-
 [tool.pylint."messages control"]
 disable = ["too-many-arguments"]
 

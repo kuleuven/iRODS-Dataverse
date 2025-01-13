@@ -1,5 +1,5 @@
 import unittest
-import os.path
+from importlib.resources import files
 from irods2dataverse.avu2json import (
     parse_json_metadata,
     update_template,
@@ -27,8 +27,8 @@ class TestFieldTransformation(unittest.TestCase):
             "subject": ["Demo Only"],
             "title": "Minimum Viable Workflow - 16 May 2024",
         }
-        self.schema_demo_path = os.path.join(
-            os.path.dirname(__file__), "resources", "mango2dv-demo-1.0.0-published.json"
+        self.schema_demo_path = files("resources").joinpath(
+            "mango2dv-demo-1.0.0-published.json"
         )
 
     def test_validation(self):
@@ -90,9 +90,7 @@ class TestFieldTransformation(unittest.TestCase):
         )
 
     def test_rewriting_template(self):
-        template_path = os.path.join(
-            os.path.dirname(__file__), "resources", "template_Demo.json"
-        )
+        template_path = files("resources").joinpath("template_Demo.json")
         demo_template = extract_template(template_path)
         self.assertIsInstance(demo_template, dict)
 
