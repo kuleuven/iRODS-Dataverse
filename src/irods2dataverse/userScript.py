@@ -94,6 +94,8 @@ if __name__ == "__main__":
             inp_i = Prompt.ask(
                 "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations"
             )
+            if not inp_i and len(data_objects_list) > 0:
+                break
             try:
                 obj = session.data_objects.get(inp_i)
                 data_objects_list.append(obj)
@@ -103,7 +105,7 @@ if __name__ == "__main__":
                     )
                 else:
                     c.print(
-                        f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
+                        f"Failed to add or set metadata in iRODS",
                         style=warning,
                     )
             except Exception as e:  # change this to specific exception
@@ -111,8 +113,6 @@ if __name__ == "__main__":
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
-            if len(data_objects_list) > 0:
-                break
 
     # --- Print a table of the selected data --- #
     c.print("The following objects are selected for publication:", style=info)
