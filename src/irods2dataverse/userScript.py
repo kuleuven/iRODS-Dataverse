@@ -113,13 +113,16 @@ if __name__ == "__main__":
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
+            if not (Confirm.ask("Add more objects?")):
+                break
+
 
     # --- Print a table of the selected data --- #
     c.print("The following objects are selected for publication:", style=info)
     table = Table(title="data object overview")
-    table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
-    table.add_column("name", style="magenta")
-    table.add_column("size (MB)", justify="right", style="green")
+    table.add_column("unique id", justify="right", no_wrap=True)
+    table.add_column("name")
+    table.add_column("size (MB)", justify="right")
     for object in data_objects_list:
         table.add_row(f"{object.id}", f"{object.name}", f"{object.size/1000000:.2f}")
     c.print(table)
@@ -230,7 +233,7 @@ if __name__ == "__main__":
             md = avu2json.get_template(path_to_template, metadata)
         if Confirm.ask(
             "Would you like to provide the necessary metadata using the command line interface?\n"):
-            md = cli_input.fill_in_md_template(input_dataverse, token)
+            md = cli_input.fill_in_md_template(path_to_template)
 
         else:
             md = ""
