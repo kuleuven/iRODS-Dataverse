@@ -1,15 +1,40 @@
 from .metadatablocks import Metadatablocks
 import json
 import importlib.resources 
+from rich.prompt import Prompt, Confirm
+
 
 # Reads contents with UTF-8 encoding and returns str.
 
-def get_controlled_vocabulary(dv_installation, api_key, field):
+def get_controlled_vocabulary(name):
 
-    blocks = Metadatablocks(dv_installation, api_key)
-    controlled_vocabulary = blocks.find_controlled_vocabulary(field)
-    return controlled_vocabulary
+    controlled_vocabularies = {
+                "subject": {
+                    "values": [
+                        "Agricultural Sciences",
+                        "Arts and Humanities",
+                        "Astronomy and Astrophysics",
+                        "Business and Management",
+                        "Chemistry",
+                        "Computer and Information Science",
+                        "Earth and Environmental Sciences",
+                        "Engineering",
+                        "Law",
+                        "Mathematical Sciences",
+                        "Medicine, Health and Life Sciences",
+                        "Physics",
+                        "Social Sciences",
+                        "Other",
+                        "Demo Only"
+                    ],
+                    "description": "Controlled list of subjects for DEMO Dataverse"
+                }
+            }
+    
+    return controlled_vocabularies[name]["values"]
+    
 
+    
 
 def get_filename(dv_installation):
     match dv_installation:
@@ -22,15 +47,13 @@ def get_filename(dv_installation):
         
 
 
-def fill_in_md_template(dv_installation, api_key):
+def fill_in_md_template(path_to_template):
     """
     prompts user to fill in values for md upload form
 
     """
-    with importlib.resources.path('resources', get_filename(dv_installation)) as resource_path:
-        filename = resource_path
 
-    with open(filename , "r") as f:
+    with open(path_to_template , "r") as f:
         dataset = json.load(f)
 
     blocks = dataset["datasetVersion"]["metadataBlocks"]
@@ -44,22 +67,19 @@ def fill_in_md_template(dv_installation, api_key):
                         for i in range(len(field["value"])):
                             for child_value in field["value"][i].values():
                                 name = child_value["typeName"]
-                                child_value["value"] = input(f"{name}: ")
+                                child_value["value"] = Prompt.ask(name, default=f"placeholder {name}")
                     else:
                         name = field["typeName"]
                         if field["typeClass"] == "controlledVocabulary":
-                            print(
-                                """controlled vocabulary: (separate with , (no spaces) )
-                                    """
-                                + str(get_controlled_vocabulary(dv_installation, api_key, name))
-                            )
-                            string = input(f"{name}: ")
-                            field["value"] = string.split(",")
+                            controlled_vocabulary_list = get_controlled_vocabulary(name)
+                            string = Prompt.ask(f"Choose a {name} from the controlled vocabulary:", choices=controlled_vocabulary_list, default=controlled_vocabulary_list[0])
+                            field["value"] = string
                         else:
-                            field["value"] = input(f"{name}: ")
-        with open(filename, "w") as f:
+                            field["value"] = Prompt.ask(name, default=f"placeholder {name}")
+        print(blocks)
+        with open("TEMPFILE_changeme.json", "w") as f:
             json.dump(dataset, f)
         
-    return filename
+    #return TEMPFILE_changeme
 
 
