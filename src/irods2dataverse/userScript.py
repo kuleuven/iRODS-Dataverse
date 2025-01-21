@@ -25,8 +25,6 @@ from rich.padding import Padding
 info = Style(color="cyan")
 action = Style(color="yellow")
 warning = Style(color="red")
-panel_blue = Style(color="white", bold=True, bgcolor="blue")
-panel_black = Style(color="white", bgcolor="black")
 
 
 # create a rich console
@@ -41,14 +39,18 @@ def vertical_space(text, style="default", below=0, left=1):
 c.print(
     Panel.fit(
         """
- To drive the process based on metadata, go to your selected zone 
- and add the following metadata to at least one data object 
- for a configured Dataverse installation (e.g. Demo):             
+This is an implementation for programmatic publication of data from iRODS into a Dataverse installation.
+        
+To drive the process based on metadata, go to your selected zone and add the following metadata to at 
+least one data object for a configured Dataverse installation (e.g. Demo):      
+       
     A: dv.publication   V: initiated                                         
     A: dv.installation  V: Demo
+
 The configured Dataverse installations are: Demo, RDR, RDR-pilot  
+
+For more detailed instructions go to https://github.com/kuleuven/iRODS-Dataverse
                    """,
-        style=panel_blue,
         title="Instructions",
     )
 )
@@ -223,6 +225,7 @@ if __name__ == "__main__":
             for data_object in data_objects_list:
                 metadata = avu2json.parse_mango_metadata(path_to_schema, data_object)
                 if metadata:
+                    print("sorry metadata not found ")
                     break
             # get template
             if not metadata:
@@ -234,7 +237,8 @@ if __name__ == "__main__":
         if Confirm.ask(
             "Would you like to provide the necessary metadata using the command line interface?\n"):
             md = cli_input.fill_in_md_template(path_to_template)
-
+            with open(md, "r") as f:
+                md = json.load(f)
         else:
             md = ""
             while not os.path.exists(md):

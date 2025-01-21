@@ -2,6 +2,7 @@ from .metadatablocks import Metadatablocks
 import json
 import importlib.resources 
 from rich.prompt import Prompt, Confirm
+from pathlib import Path
 
 
 # Reads contents with UTF-8 encoding and returns str.
@@ -34,7 +35,17 @@ def get_controlled_vocabulary(name):
     return controlled_vocabularies[name]["values"]
     
 
+def create_tmp_folder():
+    directory_name = "tmp"
+    root_path = Path(__file__).parent
+    new_directory_path = root_path / directory_name
+
+    try:
+        new_directory_path.mkdir(exist_ok=True)
+    except Exception as e:
+        print(f"An error occured: {e}")
     
+    return new_directory_path.resolve()
 
 def get_filename(dv_installation):
     match dv_installation:
@@ -67,18 +78,25 @@ def fill_in_md_template(path_to_template):
                         for i in range(len(field["value"])):
                             for child_value in field["value"][i].values():
                                 name = child_value["typeName"]
-                                child_value["value"] = Prompt.ask(name, default=f"placeholder {name}")
+                                if name == "datasetContactEmail":
+                                    child_value["value"] = Prompt.ask(name, default="placeholder@placeholder.com")
+                                else:
+                                    child_value["value"] = Prompt.ask(name, default=f"placeholder {name}")
                     else:
                         name = field["typeName"]
                         if field["typeClass"] == "controlledVocabulary":
                             controlled_vocabulary_list = get_controlled_vocabulary(name)
                             string = Prompt.ask(f"Choose a {name} from the controlled vocabulary:", choices=controlled_vocabulary_list, default=controlled_vocabulary_list[0])
-                            field["value"] = string
+                            field["value"] = [string]
                         else:
                             field["value"] = Prompt.ask(name, default=f"placeholder {name}")
-        print(blocks)
-        with open("TEMPFILE_changeme.json", "w") as f:
+        file_path = create_tmp_folder()
+        with open(file_path / "tmp_file.json", "w") as f:
             json.dump(dataset, f)
+        return file_path / "tmp_file.json"
+
+
+
         
     #return TEMPFILE_changeme
 
