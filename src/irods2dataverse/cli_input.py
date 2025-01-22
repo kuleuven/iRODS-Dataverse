@@ -1,6 +1,5 @@
 from .metadatablocks import Metadatablocks
 import json
-import importlib.resources 
 from rich.prompt import Prompt, Confirm
 from pathlib import Path
 
@@ -47,15 +46,6 @@ def create_tmp_folder():
     
     return new_directory_path.resolve()
 
-def get_filename(dv_installation):
-    match dv_installation:
-        case "RDR":
-            return "template_RDR.json"
-        case "Demo":
-            return "template_Demo.json"
-        case "RDR-pilot":
-            return "template_RDR-pilot.json"
-        
 
 
 def fill_in_md_template(path_to_template):
@@ -86,14 +76,14 @@ def fill_in_md_template(path_to_template):
                         name = field["typeName"]
                         if field["typeClass"] == "controlledVocabulary":
                             controlled_vocabulary_list = get_controlled_vocabulary(name)
-                            string = Prompt.ask(f"Choose a {name} from the controlled vocabulary:", choices=controlled_vocabulary_list, default=controlled_vocabulary_list[0])
+                            string = Prompt.ask(f"Choose one {name} from the controlled vocabulary (additional values can be added later):", choices=controlled_vocabulary_list, default="Other")
                             field["value"] = [string]
                         else:
                             field["value"] = Prompt.ask(name, default=f"placeholder {name}")
         file_path = create_tmp_folder()
         with open(file_path / "tmp_file.json", "w") as f:
             json.dump(dataset, f)
-        return file_path / "tmp_file.json"
+        return str(file_path / "tmp_file.json")
 
 
 

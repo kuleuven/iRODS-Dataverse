@@ -236,9 +236,11 @@ if __name__ == "__main__":
             md = avu2json.get_template(path_to_template, metadata)
         if Confirm.ask(
             "Would you like to provide the necessary metadata using the command line interface?\n"):
-            md = cli_input.fill_in_md_template(path_to_template)
-            with open(md, "r") as f:
+            md_path = cli_input.fill_in_md_template(path_to_template)
+            with open(md_path, "r") as f:
                 md = json.load(f)
+            shutil.rmtree(md_path[:-14])
+            
         else:
             md = ""
             while not os.path.exists(md):
