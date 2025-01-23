@@ -2,6 +2,7 @@ from .metadatablocks import Metadatablocks
 import json
 from rich.prompt import Prompt, Confirm
 from pathlib import Path
+import re
 
 
 # Reads contents with UTF-8 encoding and returns str.
@@ -69,7 +70,10 @@ def fill_in_md_template(path_to_template):
                             for child_value in field["value"][i].values():
                                 name = child_value["typeName"]
                                 if name == "datasetContactEmail":
-                                    child_value["value"] = Prompt.ask(name, default="placeholder@placeholder.com")
+                                    email = None
+                                    while not re.match(r"[^@]+@[^@]+\.[^@]+", str(email)):
+                                        email = Prompt.ask(f"enter a valid {name}", default="placeholder@placeholder.com")
+                                    child_value["value"] = email
                                 else:
                                     child_value["value"] = Prompt.ask(name, default=f"placeholder {name}")
                     else:
