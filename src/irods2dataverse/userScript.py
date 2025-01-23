@@ -4,6 +4,7 @@ import maskpass
 import datetime
 import tempfile
 import shutil
+import time
 
 import os.path
 from rich.console import Console
@@ -69,7 +70,7 @@ if __name__ == "__main__":
         raise SystemExit
 
     # --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
-
+    time.sleep(0.5)
     vertical_space(
         "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
     )
@@ -118,7 +119,7 @@ if __name__ == "__main__":
             if not (Confirm.ask("Add more objects?")):
                 break
 
-
+    time.sleep(0.5)
     # --- Print a table of the selected data --- #
     c.print("The following objects are selected for publication:", style=info)
     table = Table(title="data object overview")
@@ -139,6 +140,8 @@ if __name__ == "__main__":
             item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
         )
         vertical_space("")
+
+    time.sleep(0.5)
 
     vertical_space(
         f"Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.",
@@ -225,7 +228,6 @@ if __name__ == "__main__":
             for data_object in data_objects_list:
                 metadata = avu2json.parse_mango_metadata(path_to_schema, data_object)
                 if metadata:
-                    print("sorry metadata not found ")
                     break
             # get template
             if not metadata:

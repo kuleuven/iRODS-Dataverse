@@ -271,48 +271,6 @@ class Metadatablocks(object):
             controlled_vocabulary = self.controlled_vocabularies[name]
         return controlled_vocabulary
 
-    def fill_in_md_template(self, file_name=None):
-        """
-        prompts user to fill in values for md upload form
-
-        Optional param: file_name
-        """
-
-        if file_name == None:
-            file_name = self.file_name
-
-        with open(file_name, "r") as f:
-            dataset = json.load(f)
-
-        blocks = dataset["datasetVersion"]["metadataBlocks"]
-        block_list = [k for k in blocks]
-
-        for block in block_list:
-            for key, value in blocks[block].items():
-                if key == "fields":
-                    for field in value:
-                        if isinstance(field["value"], list):
-                            for i in range(len(field["value"])):
-                                for child_value in field["value"][i].values():
-                                    name = child_value["typeName"]
-                                    child_value["value"] = input(f"{name}: ")
-
-                        else:
-                            name = field["typeName"]
-                            if field["typeClass"] == "controlledVocabulary":
-                                print(
-                                    """controlled vocabulary: (separate with , (no spaces) )
-                                      """
-                                    + str(self.find_controlled_vocabulary(name))
-                                )
-                                string = input(f"{name}: ")
-                                field["value"] = string.split(",")
-                            else:
-                                field["value"] = input(f"{name}: ")
-
-            with open(file_name, "w") as f:
-                json.dump(dataset, f)
-                
 
     def show_controlled_vocabularies(self, name):
         match name:
