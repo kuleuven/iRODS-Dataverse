@@ -241,7 +241,7 @@ if __name__ == "__main__":
             md_path = cli_input.fill_in_md_template(path_to_template)
             with open(md_path, "r") as f:
                 md = json.load(f)
-            shutil.rmtree(md_path[:-14])
+            #shutil.rmtree(md_path[:-14])
             
         else:
             md = ""
