@@ -3,6 +3,9 @@ import json
 from rich.prompt import Prompt, Confirm
 from pathlib import Path
 import re
+from datetime import datetime
+
+
 
 
 # Reads contents with UTF-8 encoding and returns str.
@@ -80,7 +83,12 @@ def check_typeClass(field):
 
 
 def primitive_field(field):
-    field["value"] = Prompt.ask(field['typeName'], default=f"placeholder {field['typeName']}")
+    if  re.match(r".*email.*", field["typeName"], re.IGNORECASE):
+        field["value"] = get_email(field)
+    elif  re.match (r".*date.*", field["typeName"], re.IGNORECASE):
+        field["value"] = get_date(field)
+    else:
+        field["value"] = Prompt.ask(field['typeName'], default=f"placeholder {field['typeName']}")
 
 
 
@@ -105,14 +113,17 @@ def compound_field(field):
 
 
 
-def check_valid_email(field):
-    if re.match(r".*email.*", field["typeName"], re.IGNORECASE):
-        email = None
-        while not re.match(r"[^@]+@[^@]+\.[^@]+", str(email)):
-            email = Prompt.ask(f"enter a valid {field['typeName']}", default="placeholder@placeholder.com")
-        field["value"] = email
-    else:
-        field["value"] = Prompt.ask(field["typeName"], default=f"placeholder {field['typeName']}")
+def get_email(field):
+    email = None
+    while not re.match(r"[^@]+@[^@]+\.[^@]+", str(email)):
+        email = Prompt.ask(f"enter a valid {field['typeName']}", default="placeholder@placeholder.com")
+    return email
+
+def get_date(field):
+    date = None
+    while not re.match(r"\d\d\d\d-\d\d-\d\d", str(date)):
+        date = Prompt.ask(f"enter a valid {field['typeName']} (YYYY-MM-DD)", default=datetime.today().strftime("%Y-%m-%d"))
+    return date
 
 
 
