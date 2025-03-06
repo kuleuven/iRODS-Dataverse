@@ -84,7 +84,7 @@ blocks.find_controlled_vocabulary("subject")
 This method prompts user to fill in values for the metadata upload form for dataverse
 
 
-## basic example:
+## example 1:
 
 ```python
 #import library
@@ -115,5 +115,21 @@ mdb.fill_in_md_template()
 
 #set md as your filenmae
 md = mdb.file_name
+
+```
+
+## example 2 
+
+```python
+
+
+mdb = MetadataBlocks(
+    "Demo",
+    api_token,
+        )
+
+#write all the possible metadatablocks to file
+mdb.write_clean_mdblocks():
+
 
 ```
