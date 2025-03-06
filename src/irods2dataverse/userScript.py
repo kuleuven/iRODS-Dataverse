@@ -116,8 +116,8 @@ if __name__ == "__main__":
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
-            if not (Confirm.ask("Add more objects?")):
-                break
+   #         if not (Confirm.ask("Add more objects?")):
+    #            break
 
     time.sleep(0.5)
     # --- Print a table of the selected data --- #

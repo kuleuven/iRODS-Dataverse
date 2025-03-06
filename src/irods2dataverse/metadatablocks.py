@@ -1,7 +1,6 @@
 import json
 from pyDataverse.api import NativeApi
-from pyDataverse.models import Dataset
-import requests  # http://docs.python-requests.org/en/master/
+import requests 
 
 
 class Metadatablocks(object):
@@ -47,19 +46,20 @@ class Metadatablocks(object):
                 self.dv_url = "https://demo.dataverse.org"
             case "rdr":
                 self.dv_url = "https://rdr.kuleuven.be/"
-            case "havard":
-                self.dv_url = "https://dataverse.harvard.edu/"
-            case "dans":
-                self.dv_url = "https://dataverse.nl/"
-            case "DataVerseNL":
-                self.dv_url = "https://demo.dataverse.nl/dataverse/root"
+            # case "havard":
+            #     self.dv_url = "https://dataverse.harvard.edu/"
+            # case "dans":
+            #     self.dv_url = "https://dataverse.nl/"
+            # case "DataVerseNL":
+            #     self.dv_url = "https://demo.dataverse.nl/dataverse/root"
             case _:
                 exit(
-                    "this dataverse is not configured: the following installations are available: Demo, RDR, RDR-pilot, Harvard, DANS"
+                    "this dataverse is not configured: the following installations are available: Demo, RDR, RDR-pilot"
                 )
 
     def check_extra_fields(self):
-        """This functions checks which extra fields should be added to the metadata document specified by the users
+        """
+        This functions checks which extra fields should be added to the metadata document specified by the users
         these are fields that are not listed as required in the template but can be added by the users
         """
         if self.extra_fields == None:
@@ -122,16 +122,7 @@ class Metadatablocks(object):
         self.get_mdblocks()
         self.remove_childfields()
 
-    def get_datasetSchema(self):
-        headers = {"X-Dataverse-key": self.dv_api_key}
-        self.schema = requests.get(
-            f"https://rdr.kuleuven.be/api/dataverses/{self.dv_installation.lower()}/datasetSchema",
-            headers=headers,
-        )
 
-    def write_schema(self):
-        with open(f"doc/schemas/{self.dv_installation}_schema.json", "w") as f:
-            json.dump(self.schema.json(), f)
 
     ###### get all the controlled vocabularies ###############
 
@@ -262,8 +253,9 @@ class Metadatablocks(object):
 
     def find_controlled_vocabulary(self, name):
         """
-        Checks for controlled vocabularies
-        """
+        This method takes the typeName of a field and returns a list of the possible
+        values for the controlled vocabulary        
+          """
         if not self.controlled_vocabularies:
             self.get_controlled_vocabularies()
 
@@ -272,100 +264,14 @@ class Metadatablocks(object):
         return controlled_vocabulary
 
 
-    def show_controlled_vocabularies(self, name):
-        match name:
-            case "subject":
-                voc = (
-                    [
-                        "Agricultural Sciences",
-                        "Arts and Humanities",
-                        "Astronomy and Astrophysics",
-                        "Business and Management",
-                        "Chemistry",
-                        "Computer and Information Science",
-                        "Earth and Environmental Sciences",
-                        "Engineering",
-                        "Law",
-                        "Mathematical Sciences",
-                        "Medicine, Health and Life Sciences",
-                        "Physics",
-                        "Social Sciences",
-                        "Other",
-                        "Demo Only",
-                    ],
-                )
-            case "departmentFaculty":
-                voc = (
-                    [
-                        "Associated Faculty of Arts",
-                        "Faculty of Arts",
-                        "Department of Architecture",
-                        "Faculty of Architecture",
-                        "Department of Biology",
-                        "Faculty of Bioscience Engineering",
-                        "Department of Biosystems (BIOSYST)",
-                        "Faculty of Canon Law",
-                        "Department of Cardiovascular Sciences",
-                        "Department of Cellular and Molecular Medicine",
-                        "Department of Chemical Engineering (CIT)",
-                        "Department of Chemistry",
-                        "Department of Chronic Diseases and Metabolism",
-                        "Department of Civil Engineering",
-                        "Department of Computer Science",
-                        "Department of Development and Regeneration",
-                        "DOC - Research Coordination Office",
-                        "Department of Earth and Environmental Sciences",
-                        "Faculty of Economics and Business (FEB)",
-                        "Department of Electrical Engineering (ESAT)",
-                        "Faculty of Engineering Science",
-                        "Faculty of Engineering Technology",
-                        "European Centre for Ethics",
-                        "HIVA",
-                        "Department of Human Genetics",
-                        "ILT",
-                        "Department of Imaging and Pathology",
-                        "Interfaculty Centre for Agrarian History",
-                        "KADOC",
-                        "KU Leuven Libraries",
-                        "Faculty of Law",
-                        "Lstat",
-                        "LUCAS",
-                        "Department of Materials Engineering",
-                        "Department of Mathematics",
-                        "Department of Mechanical Engineering",
-                        "Faculty of Medicine",
-                        "Department of Microbial and Molecular Systems (M\u00b2S)",
-                        "Department of Microbiology, Immunology and Transplantation",
-                        "Faculty of Movement and Rehabilitation Sciences",
-                        "Department of Movement Sciences",
-                        "Department of Neurosciences",
-                        "Department of Oncology",
-                        "Department of Oral Health Sciences",
-                        "Faculty of Pharmaceutical Sciences",
-                        "Department of Pharmaceutical and Pharmacological Sciences",
-                        "Institute of Philosophy",
-                        "Department of Physics and Astronomy",
-                        "Faculty of Psychology and Educational Sciences",
-                        "Department of Public Health and Primary Care",
-                        "Department of Rehabilitation Sciences",
-                        "Faculty of Science",
-                        "Faculty of Social Sciences",
-                        "Faculty of Theology and Religious Studies",
-                        "University Administration and Central Services",
-                        "Other",
-                    ],
-                )
-        return voc
-
-
 if __name__ == "__main__":
     dv_installation = input("please provide your installation (RDR, RDR-Pilot, Demo): ")
     api_key = input("please provide your api key: ")
-    blocks = MetadataBlocks(
+    blocks = Metadatablocks(
         dv_installation,
         api_key,
-        ["authorAffiliation", "datasetContactName"],
+        ["authorAffiliation", "datasetContactName", "access", "accessRights", "dateAvailable", "legitimateOptout", "legalCaseNumber"],
     )
     blocks.create_json_to_upload()
-    blocks.fill_in_md_template()
     # blocks.get_controlled_vocabularies()
+    #  blocks.write_clean_mdblocks()

@@ -148,6 +148,5 @@ def fill_in_md_template(path_to_template):
 
 
         
-    #return TEMPFILE_changeme
 
 
