@@ -50,12 +50,6 @@ This method gets metadatablocks from api, cleans them & writes to file
 * clean_mdblocks():  
 This method gets metadatablocks from api and cleans them
 
-* get_datasetSchema():  
-This method gets the schema and stores it as an attribute schema
-
-* write_schema(self):  
-This method write the schema to a json file
-
 * get_controlled_vocabularies():  
 This method gets all the controlled vocabularies 
 
