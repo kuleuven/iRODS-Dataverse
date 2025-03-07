@@ -95,7 +95,7 @@ if __name__ == "__main__":
         while True:
             vertical_space("")
             inp_i = Prompt.ask(
-                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations"
+                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations. Press Enter to submit path. Leave blank and press Enter to end."
             )
             if not inp_i and len(data_objects_list) > 0:
                 break
@@ -116,7 +116,6 @@ if __name__ == "__main__":
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
                     style=warning,
                 )
-
 
     time.sleep(0.5)
     # --- Print a table of the selected data --- #
@@ -236,12 +235,13 @@ if __name__ == "__main__":
                 return ask_metadata(path_to_template, path_to_schema, data_objects_list)
             md = avu2json.get_template(path_to_template, metadata)
         if Confirm.ask(
-            "Would you like to provide the necessary metadata using the command line interface?\n"):
+            "Would you like to provide the necessary metadata using the command line interface?\n"
+        ):
             md_path = cli_input.fill_in_md_template(path_to_template)
             with open(md_path, "r") as f:
                 md = json.load(f)
-            #shutil.rmtree(md_path[:-14])
-            
+            # shutil.rmtree(md_path[:-14])
+
         else:
             md = ""
             while not os.path.exists(md):
