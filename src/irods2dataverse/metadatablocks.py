@@ -1,6 +1,5 @@
 import json
 from pyDataverse.api import NativeApi
-import requests 
 
 
 class Metadatablocks(object):
@@ -121,8 +120,6 @@ class Metadatablocks(object):
         """
         self.get_mdblocks()
         self.remove_childfields()
-
-
 
     ###### get all the controlled vocabularies ###############
 
@@ -254,8 +251,8 @@ class Metadatablocks(object):
     def find_controlled_vocabulary(self, name):
         """
         This method takes the typeName of a field and returns a list of the possible
-        values for the controlled vocabulary        
-          """
+        values for the controlled vocabulary
+        """
         if not self.controlled_vocabularies:
             self.get_controlled_vocabularies()
 
@@ -270,7 +267,15 @@ if __name__ == "__main__":
     blocks = Metadatablocks(
         dv_installation,
         api_key,
-        ["authorAffiliation", "datasetContactName", "access", "accessRights", "dateAvailable", "legitimateOptout", "legalCaseNumber"],
+        [
+            "authorAffiliation",
+            "datasetContactName",
+            "access",
+            "accessRights",
+            "dateAvailable",
+            "legitimateOptout",
+            "legalCaseNumber",
+        ],
     )
     blocks.create_json_to_upload()
     # blocks.get_controlled_vocabularies()
