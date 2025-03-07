@@ -1,11 +1,11 @@
 
-## MetadataBlocks.py : request metadatablocks from dataverse installation
+## metadatablocks.py : request metadatablocks from a Dataverse installation
 
 
-Uses: request all metadatablocks from dataverse installation & create a template to upload with required fields
+Usage: Request all metadatablocks from a Dataverse installation and create a template to upload with required fields
 
 
-#### About the datastructure:
+#### About the data structure:
 
 * **typeClass:**
   * "primitive":  value is a string
@@ -13,7 +13,7 @@ Uses: request all metadatablocks from dataverse installation & create a template
 
 
 * **multiple:** 
-  * true : multiple value are possible we put our dictionary/dictionaries in a list
+  * true: multiple value are possible we put our dictionary/dictionaries in a list
   * false:  multiple value are not possible, no list
 
 * **typeName:**
@@ -21,8 +21,8 @@ Uses: request all metadatablocks from dataverse installation & create a template
 
 
 #### required parameters:
-* name for dataverse installation: the following installations are available: demo, RDR, RDR-Pilot, Harvard, DANS
-* api token for chosen dataverse installation
+* name of a Dataverse installation: the following installations are available: Demo, RDR, RDR-Pilot
+* api token for the chosen Dataverse installation
 
 #### optional parameters:
 
@@ -33,13 +33,13 @@ Extra_fields = list of possible extra fields that are added to the metadata temp
 ## Methods:
 
 *  set_dv_url():   
-This method checks the dataverse installation based on the user input and sets the dv_url attribute
+This method checks the Dataverse installation based on the user input and sets the dv_url attribute
 
 *  check_extra_fields():  
  This method checks the extra fields requested by the user 
 
 *  get_mdblocks():  
- This method gets metadatablocks from dataverse
+ This method gets metadatablocks from Dataverse
 
 *  remove_childfields():  
 This method removes the fields from the top level that already exist as childfields of a compound field
@@ -63,7 +63,6 @@ This method gets all the controlled vocabularies
 This method makes a copy of the template (field_info) and fills in the necessary 
 information based on the provided parameters: either compound or not compound
 
-
 *  add_required(self, all_blocks, block):  
 This method adds required fields
 
@@ -81,54 +80,54 @@ blocks.find_controlled_vocabulary("subject")
 ```
 
 * fill_in_md_template():  
-This method prompts user to fill in values for the metadata upload form for dataverse
+This method prompts user to fill in values for the metadata upload form for Dataverse
 
 
-## example 1:
+## example 1: request required fields plus a list of non-required fields
 
 ```python
-#import library
+# import library
 
-from MetadataBlocks import MetadataBlocks
+from irods2dataverse import metadatablocks
 
-#create instance of object: 
+# create instance of object: 
 
-mdb = MetadataBlocks(
+mdb = metadatablocks.Metadatablocks(
     "Demo",
     api_token,
-     [
+    [
         "authorAffiliation",
         "departmentFaculty",
         "datasetContactName",
         "datasetContactAffiliation",
         "dateAvailable",
         "legitimateOptout",
-            ],
-        )
+    ],
+)
 
 
-#create an empty template 
+# create an empty template 
 mdb.create_json_to_upload()
 
-#prompt user to fill in template & save
+# prompt user to fill in template & save
 mdb.fill_in_md_template()
 
-#set md as your filenmae
+# set md as your filename
 md = mdb.file_name
 
 ```
 
-## example 2 
+## example 2: request required fields only
 
 ```python
 
 
-mdb = MetadataBlocks(
+mdb = metadatablocks.Metadatablocks(
     "Demo",
     api_token,
-        )
+)
 
-#write all the possible metadatablocks to file
+# write all the possible metadatablocks to file
 mdb.write_clean_mdblocks():
 
 
