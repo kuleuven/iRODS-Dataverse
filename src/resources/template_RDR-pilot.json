@@ -48,7 +48,7 @@
                             }
                         ],
                         "typeClass": "compound",
-                        "multiple": false,
+                        "multiple": true,
                         "typeName": "datasetContact"
                     },
                     {
@@ -97,18 +97,6 @@
                                 "multiple": false,
                                 "typeClass": "controlledVocabulary",
                                 "value": "...open/restricted/embargoed/closed.."
-                            },
-                            "dateAvailable": {
-                                "typeName": "dateAvailable",
-                                "multiple": false,
-                                "typeClass": "primitive",
-                                "value": "....."
-                            },
-                            "legitimateOptout": {
-                                "typeName": "legitimateOptout",
-                                "multiple": false,
-                                "typeClass": "controlledVocabulary",
-                                "value": "...privacy/intellectual property rights/ethical aspects/aspects of dual use/other..."
                             }
                         }
                     }

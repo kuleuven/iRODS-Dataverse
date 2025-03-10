@@ -28,7 +28,7 @@ deactivate
 After the virtual environment is activated run:
 
 ```sh
-python src/userScript.py
+python -m irods2dataverse.userScript
 ```
 
 This will trigger an interactive terminal that will take you through the following steps:

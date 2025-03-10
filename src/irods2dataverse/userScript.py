@@ -1,9 +1,10 @@
-from irods2dataverse import from_irods, to_dataverse, direct_upload, avu2json
+from irods2dataverse import from_irods, to_dataverse, direct_upload, avu2json, cli_input
 import json
 import maskpass
 import datetime
 import tempfile
 import shutil
+import time
 
 import os.path
 from rich.console import Console
@@ -25,8 +26,6 @@ from rich.padding import Padding
 info = Style(color="cyan")
 action = Style(color="yellow")
 warning = Style(color="red")
-panel_blue = Style(color="white", bold=True, bgcolor="blue")
-panel_black = Style(color="white", bgcolor="black")
 
 
 # create a rich console
@@ -41,14 +40,18 @@ def vertical_space(text, style="default", below=0, left=1):
 c.print(
     Panel.fit(
         """
- To drive the process based on metadata, go to your selected zone 
- and add the following metadata to at least one data object 
- for a configured Dataverse installation (e.g. Demo):             
+This is an implementation for programmatic publication of data from iRODS into a Dataverse installation.
+        
+To drive the process based on metadata, go to your selected zone and add the following metadata to at 
+least one data object for a configured Dataverse installation (e.g. Demo):      
+       
     A: dv.publication   V: initiated                                         
     A: dv.installation  V: Demo
+
 The configured Dataverse installations are: Demo, RDR, RDR-pilot  
+
+For more detailed instructions go to https://github.com/kuleuven/iRODS-Dataverse
                    """,
-        style=panel_blue,
         title="Instructions",
     )
 )
@@ -67,7 +70,7 @@ if __name__ == "__main__":
         raise SystemExit
 
     # --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
-
+    time.sleep(0.5)
     vertical_space(
         "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
     )
@@ -92,7 +95,7 @@ if __name__ == "__main__":
         while True:
             vertical_space("")
             inp_i = Prompt.ask(
-                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations"
+                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations. Press Enter to submit path. Leave blank and press Enter to end."
             )
             if not inp_i and len(data_objects_list) > 0:
                 break
@@ -114,12 +117,13 @@ if __name__ == "__main__":
                     style=warning,
                 )
 
+    time.sleep(0.5)
     # --- Print a table of the selected data --- #
     c.print("The following objects are selected for publication:", style=info)
     table = Table(title="data object overview")
-    table.add_column("unique id", justify="right", style="cyan", no_wrap=True)
-    table.add_column("name", style="magenta")
-    table.add_column("size (MB)", justify="right", style="green")
+    table.add_column("unique id", justify="right", no_wrap=True)
+    table.add_column("name")
+    table.add_column("size (MB)", justify="right")
     for object in data_objects_list:
         table.add_row(f"{object.id}", f"{object.name}", f"{object.size/1000000:.2f}")
     c.print(table)
@@ -134,6 +138,8 @@ if __name__ == "__main__":
             item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
         )
         vertical_space("")
+
+    time.sleep(0.5)
 
     vertical_space(
         f"Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.",
@@ -228,6 +234,13 @@ if __name__ == "__main__":
                 )
                 return ask_metadata(path_to_template, path_to_schema, data_objects_list)
             md = avu2json.get_template(path_to_template, metadata)
+        if Confirm.ask(
+            "Would you like to provide the necessary metadata using the command line interface?\n"
+        ):
+            md_path = cli_input.fill_in_md_template(path_to_template)
+            with open(md_path, "r") as f:
+                md = json.load(f)
+            # shutil.rmtree(md_path[:-14])
 
         else:
             md = ""
