@@ -234,7 +234,7 @@ if __name__ == "__main__":
                 )
                 return ask_metadata(path_to_template, path_to_schema, data_objects_list)
             md = avu2json.get_template(path_to_template, metadata)
-        if Confirm.ask(
+        elif Confirm.ask(
             "Would you like to provide the necessary metadata using the command line interface?\n"
         ):
             md_path = cli_input.fill_in_md_template(path_to_template)

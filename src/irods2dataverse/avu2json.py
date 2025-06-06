@@ -141,7 +141,7 @@ def update_template(field, avus_as_json):
 
 
 def get_template(path_to_template, metadata):
-    """Turn a metadata dictionary into a .
+    """Turn a metadata dictionary into the configured Dataverse filled-in template
 
     Parameters
     ----------
