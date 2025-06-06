@@ -33,9 +33,9 @@ This will trigger an interactive terminal that will take you through the followi
 
 1. Authenticate to iRODS. For KU Leuven users this happens automatically by reading your local `irods_environment.json`.
 
-2. Identify the data object(s) to send to Dataverse. The script
-searches for data objects with the metadata field `dv.publication: initiated`.
-If none exists, input the absolute path(s) of the data object(s) to be sent to Dataverse. The input path(s) refer to a single data object `/zone/home/collection/filename`, or a list of objects `["/zone/home/collection/filename1", "/zone/home/collection/filename2"]`.
+2. Identify the data object(s) to send to Dataverse. There are two possibilities:
+* Tag the data objects with metadata attribute `dv.publication` and value `initiated`.
+* Provide the absolute path(s) of the data object(s) to be sent to Dataverse. The input paths refer either to a single data object `/zone/home/collection/file`, or a list of objects `["/zone/home/collection/file_1", "/zone/home/collection/file_2"]`.
 
 3. Identify the target Dataverse installation. The script goes through the selected data object(s)
 and retrieves the metadata field `dv.installation`. If it is not valid or missing, input it from a selection.
