@@ -1,8 +1,44 @@
 import json
+import ast
 from rich.prompt import Prompt
 from pathlib import Path
 import re
 from datetime import datetime
+
+
+def is_list(input):
+    """Checks if user input represents a python list.
+
+    Parameters
+    ----------
+    input (str): User input typed in CLI
+
+    Returns
+    -------
+    bool: Returning value
+    """
+    try:
+        return isinstance(ast.literal_eval(input), list)
+    except SyntaxError:
+        return False
+
+
+def to_list(input):
+    """Converts user input to python list.
+
+    Parameters
+    ----------
+    input (str): User input typed in CLI
+
+    Returns
+    -------
+    list: Returning list
+    """
+
+    if is_list(input):
+        return ast.literal_eval(input)
+    else:
+        return [input]
 
 
 # Reads contents with UTF-8 encoding and returns str.

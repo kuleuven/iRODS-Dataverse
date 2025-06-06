@@ -64,7 +64,7 @@ def query_data(atr, val, session):
         session.data_objects.get(f"{item[Collection.name]}/{item[DataObject.name]}")
         for item in qobj
     )
-    return list(lobj)  # qobj
+    return list(lobj)
 
 
 def query_dv(atr, data_objects, installations):

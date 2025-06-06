@@ -95,22 +95,24 @@ if __name__ == "__main__":
         while True:
             vertical_space("")
             inp_i = Prompt.ask(
-                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations. Press Enter to submit path. Leave blank and press Enter to end."
+                "Provide the full iRODS path and name of the data object. To add multiple objects use a list ['path1', 'path2']. Press Enter to submit. Leave blank and press Enter to end."
             )
             if not inp_i and len(data_objects_list) > 0:
                 break
             try:
-                obj = session.data_objects.get(inp_i)
-                data_objects_list.append(obj)
-                if from_irods.save_md(obj, atr_publish, val, op="set"):
-                    c.print(
-                        f"Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object."
-                    )
-                else:
-                    c.print(
-                        f"Failed to add or set metadata in iRODS",
-                        style=warning,
-                    )
+                list_input = cli_input.to_list(inp_i)
+                for item in list_input:
+                    obj = session.data_objects.get(item)
+                    data_objects_list.append(obj)
+                    if from_irods.save_md(obj, atr_publish, val, op="set"):
+                        c.print(
+                            f"Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object."
+                        )
+                    else:
+                        c.print(
+                            f"Failed to add or set metadata in iRODS",
+                            style=warning,
+                        )
             except Exception as e:  # change this to specific exception
                 c.print(
                     f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/filename",
