@@ -95,7 +95,7 @@ if __name__ == "__main__":
         while True:
             vertical_space("")
             inp_i = Prompt.ask(
-                "Provide the full iRODS path and name of the data object to be published in one of the configured Dataverse installations. Press Enter to submit path. Leave blank and press Enter to end."
+                "Provide the full iRODS path and name of the data object. To add multiple objects use a list ['path1', 'path2']. Press Enter to submit. Leave blank and press Enter to end."
             )
             if not inp_i and len(data_objects_list) > 0:
                 break
