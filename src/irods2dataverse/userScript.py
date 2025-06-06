@@ -115,7 +115,7 @@ if __name__ == "__main__":
                         )
             except Exception as e:  # change this to specific exception
                 c.print(
-                    f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/folder/filename",
+                    f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/filename",
                     style=warning,
                 )
 
