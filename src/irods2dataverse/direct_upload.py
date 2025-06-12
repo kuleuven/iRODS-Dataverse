@@ -102,7 +102,7 @@ def put_in_s3(obj, fileURL, headers_ct):
     return response
 
 
-def create_du_md(storageID, objName, objMimetype, objChecksum):
+def create_du_md(storageID, objName, objMimetype, objChecksum, objDirectory):
     """Create direct upload metadata dictionary
 
     Parameters
@@ -115,6 +115,8 @@ def create_du_md(storageID, objName, objMimetype, objChecksum):
       mimetype of iRODS object
     objSize: str
       size of iRODS object
+    objDirectory: str
+      sub-directory for the file in the deposited dataset
 
     Returns
     -------
@@ -124,7 +126,7 @@ def create_du_md(storageID, objName, objMimetype, objChecksum):
 
     obj_md_dict = {
         "description": "This is the description of the directly uploaded file.",  # TO DO: get from iRODS metadata
-        "directoryLabel": "data/subdir1",  # TO DO: get from iRODS, based on the path of the file in a dataset
+        "directoryLabel": objDirectory,
         "categories": ["Data"],
         "restrict": "false",
         "storageIdentifier": storageID,

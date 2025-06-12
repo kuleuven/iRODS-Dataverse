@@ -177,7 +177,9 @@ if __name__ == "__main__":
             choices=installations,
             default="Demo",
         )
-        if input_dataverse in ldv:
+        if (
+            input_dataverse in ldv
+        ):  # why this logic that only if the selected dv is among the ones that were already used to tag the objects, only then we will tag the objects?
             data_objects_list = ldv[input_dataverse]
             c.print(
                 f"{len(ldv[input_dataverse])} items were tagged for this installation."
@@ -304,7 +306,9 @@ if __name__ == "__main__":
         for item in data_objects_list:
             vertical_space("")
             # Save data locally
-            from_irods.save_df(item, trg_path, session)  # download object locally
+            from_irods.save_df(
+                item, trg_path, session
+            )  # download object locally, only for Demo
             # Upload file(s)
             md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
             # Update status of publication in iRODS from 'processed' to 'deposited'
@@ -320,13 +324,15 @@ if __name__ == "__main__":
         header_key, header_ct = direct_upload.create_headers(token)
         for item in data_objects_list:
             vertical_space("")
-            objChecksum, objMimetype, objSize = from_irods.get_object_info(item)
+            objChecksum, objMimetype, objSize, objDirectory = (
+                from_irods.get_object_info(item)
+            )
             fileURL, storageID = direct_upload.get_du_url(
                 ds.baseURL, dsPID, objSize, header_key
             )
             du_step2 = direct_upload.put_in_s3(item, fileURL, header_ct)
             md_dict = direct_upload.create_du_md(
-                storageID, item.name, objMimetype, objChecksum
+                storageID, item.name, objMimetype, objChecksum, objDirectory
             )
             du_step3 = direct_upload.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
             # Update status of publication in iRODS from 'processed' to 'deposited'
