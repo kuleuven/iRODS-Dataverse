@@ -44,7 +44,8 @@ def to_list(input):
 # Reads contents with UTF-8 encoding and returns str.
 
 
-def get_controlled_vocabulary(name):
+def get_controlled_vocabulary_list(name):
+    """ Hard-coded dictionary with necessary controlled vocabularies. """
 
     controlled_vocabularies = {
         "subject": {
@@ -102,14 +103,14 @@ def create_tmp_folder():
 def check_typeClass(field):
     match field["typeClass"]:
         case "primitive":
-            primitive_field(field)
+            get_primitive_field(field)  
         case "compound":
             compound_field(field)
         case "controlledVocabulary":
-            controlled_vocabulary(field)
+            get_controlled_vocabulary(field)
 
 
-def primitive_field(field):
+def get_primitive_field(field):
     if re.match(r".*email.*", field["typeName"], re.IGNORECASE):
         field["value"] = get_email(field)
     elif re.match(r".*date.*", field["typeName"], re.IGNORECASE):
@@ -120,8 +121,8 @@ def primitive_field(field):
         )
 
 
-def controlled_vocabulary(field):
-    controlled_vocabulary_list = get_controlled_vocabulary(field["typeName"])
+def get_controlled_vocabulary(field):
+    controlled_vocabulary_list = get_controlled_vocabulary_list(field["typeName"])
     value = Prompt.ask(
         f"Choose one {field['typeName']} from the controlled vocabulary (additional values can be added later):",
         choices=controlled_vocabulary_list,
@@ -166,11 +167,12 @@ def get_date(field):
 
 
 def fill_in_md_template(path_to_template):
+    """ Allow user to fill in the template. """
 
     with open(path_to_template, "r") as f:
         dataset = json.load(f)
 
-    blocks = dataset["datasetVersion"]["metadataBlocks"]
+    blocks = dataset["datasetVersion"]["metadataBlocks"]  # get the blocks from the dataset
     block_list = [k for k in blocks]
 
     for block in block_list:
@@ -178,7 +180,10 @@ def fill_in_md_template(path_to_template):
             if key == "fields":
                 for field in value:
                     check_typeClass(field)
-        file_path = create_tmp_folder()
-        with open(file_path / "tmp_file.json", "w") as f:
-            json.dump(dataset, f)
-        return str(file_path / "tmp_file.json")
+    return dataset
+
+
+        # file_path = create_tmp_folder()
+        # with open(file_path / "tmp_file.json", "w") as f:
+        #     json.dump(dataset, f)
+        # return str(file_path / "tmp_file.json")
