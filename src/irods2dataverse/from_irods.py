@@ -133,10 +133,9 @@ def get_object_info(obj):
     # Get the size of the object
     objSize = obj.size + 1  # add 1 byte
 
-    # Get the path of teh file in the project (to be replicated in Dataverse)
-    directories = str(obj.path).split("/")[4:]  # exclude the realm
+    # Get the path of the file in the project (to be replicated in Dataverse)
     objDirectory = ""  # initialize the object directory
-    for item in directories[0:-1]:
+    for item in str(obj.path).split("/")[4:-1]:  # exclude the realm
         objDirectory = f"{objDirectory}/{item}"
 
     return objChecksum, objMimetype, objSize, objDirectory
