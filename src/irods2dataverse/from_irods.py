@@ -117,6 +117,8 @@ def get_object_info(obj):
       mimetype of iRODS object
     objSize: str
       size of iRODS object
+    objDirectory: str
+      current sub-directory of the iRODS object
     """
 
     # Get the checksum value from iRODS
@@ -131,7 +133,12 @@ def get_object_info(obj):
     # Get the size of the object
     objSize = obj.size + 1  # add 1 byte
 
-    return objChecksum, objMimetype, objSize
+    # Get the path of the file in the project (to be replicated in Dataverse)
+    objDirectory = ""  # initialize the object directory
+    for item in str(obj.path).split("/")[4:-1]:  # exclude the realm
+        objDirectory = f"{objDirectory}/{item}"
+
+    return objChecksum, objMimetype, objSize, objDirectory
 
 
 def save_md(item, atr, val, op):
@@ -174,6 +181,7 @@ def save_md(item, atr, val, op):
 
 def save_df(data_object, trg_path, session):
     """Save locally the iRODS data objects destined for publication
+    Used for installations that do not support direct upload (Demo)
 
     Parameters
     ----------
