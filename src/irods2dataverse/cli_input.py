@@ -84,10 +84,12 @@ def get_controlled_vocabulary_list(name):
         },
     }
 
-    return controlled_vocabularies[name]["values"]
+    return controlled_vocabularies[name]["values"]  #TODO change to .get and make more robust
 
 
 def create_tmp_folder():
+    """ Creates a directory with name tmp. """
+
     directory_name = "tmp"
     root_path = Path(__file__).parent
     new_directory_path = root_path / directory_name
@@ -101,6 +103,8 @@ def create_tmp_folder():
 
 
 def check_typeClass(field):
+    """ Checks typeClass (primive, compound, controlled vocabulary) for each field and redirects to appropriate method. """
+
     match field["typeClass"]:
         case "primitive":
             get_primitive_field(field)  
@@ -111,6 +115,8 @@ def check_typeClass(field):
 
 
 def get_primitive_field(field):
+    """ Gets value for a primitive field from user. """
+
     if re.match(r".*email.*", field["typeName"], re.IGNORECASE):
         field["value"] = get_email(field)
     elif re.match(r".*date.*", field["typeName"], re.IGNORECASE):
@@ -122,6 +128,8 @@ def get_primitive_field(field):
 
 
 def get_controlled_vocabulary(field):
+    """ Gets value for a controlled vocabulary from user. """
+
     controlled_vocabulary_list = get_controlled_vocabulary_list(field["typeName"])
     value = Prompt.ask(
         f"Choose one {field['typeName']} from the controlled vocabulary (additional values can be added later):",
@@ -135,6 +143,8 @@ def get_controlled_vocabulary(field):
 
 
 def compound_field(field):
+    """ Iterate through compound field. """
+
     if field["multiple"]:
         for i in range(len(field["value"])):
             for child_value in field["value"][i].values():
@@ -148,6 +158,8 @@ def compound_field(field):
 
 
 def get_email(field):
+    """ Get email in correct format string@string.string """
+
     email = None
     while not re.match(r"[^@]+@[^@]+\.[^@]+", str(email)):
         email = Prompt.ask(
@@ -157,6 +169,8 @@ def get_email(field):
 
 
 def get_date(field):
+    """ Get date in correct format YYYY-MM-DD """
+
     date = None
     while not re.match(r"\d\d\d\d-\d\d-\d\d", str(date)):
         date = Prompt.ask(
@@ -167,7 +181,7 @@ def get_date(field):
 
 
 def fill_in_md_template(path_to_template):
-    """ Allow user to fill in the template. """
+    """ Allow user to fill in the template and return as dictionary. """
 
     with open(path_to_template, "r") as f:
         dataset = json.load(f)
@@ -181,9 +195,3 @@ def fill_in_md_template(path_to_template):
                 for field in value:
                     check_typeClass(field)
     return dataset
-
-
-        # file_path = create_tmp_folder()
-        # with open(file_path / "tmp_file.json", "w") as f:
-        #     json.dump(dataset, f)
-        # return str(file_path / "tmp_file.json")

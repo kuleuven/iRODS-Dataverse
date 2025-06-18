@@ -13,7 +13,6 @@ from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.padding import Padding
-from rich.spinner import Spinner
 
 
 # Test with 2 files /set/home/datateam_set/iRODS2DV/20240718_demo
