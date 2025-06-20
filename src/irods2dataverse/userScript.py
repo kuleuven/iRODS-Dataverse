@@ -4,7 +4,7 @@ import maskpass
 import datetime
 import tempfile
 import shutil
-import time
+from time import sleep
 
 import os.path
 from rich.console import Console
@@ -34,7 +34,6 @@ c = Console()
 
 def vertical_space(text, style="default", below=0, left=1):
     return c.print(Padding(text, (1, left, below, 0), style=style))
-
 
 # --- Print instructions for the metadata-driven process --- #
 c.print(
@@ -70,7 +69,7 @@ if __name__ == "__main__":
         raise SystemExit
 
     # --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
-    time.sleep(0.5)
+    sleep(0.5)
     vertical_space(
         "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
     )
@@ -119,7 +118,7 @@ if __name__ == "__main__":
                     style=warning,
                 )
 
-    time.sleep(0.5)
+    sleep(0.5)
     # --- Print a table of the selected data --- #
     c.print("The following objects are selected for publication:", style=info)
     table = Table(title="data object overview")
@@ -141,7 +140,7 @@ if __name__ == "__main__":
         )
         vertical_space("")
 
-    time.sleep(0.5)
+    sleep(0.5)
 
     vertical_space(
         f"Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.",
@@ -241,11 +240,7 @@ if __name__ == "__main__":
         elif Confirm.ask(
             "Would you like to provide the necessary metadata using the command line interface?\n"
         ):
-            md_path = cli_input.fill_in_md_template(path_to_template)
-            with open(md_path, "r") as f:
-                md = json.load(f)
-            # shutil.rmtree(md_path[:-14])
-
+            md = cli_input.fill_in_md_template(path_to_template)
         else:
             md = ""
             while not os.path.exists(md):
