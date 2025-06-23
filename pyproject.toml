@@ -14,6 +14,7 @@ authors = [
     { name = "Danai Kafetzaki", email = "danai.kafetzaki@kuleuven.be" },
     { name = "Joachim Bovin", email = "joachim.bovin@kuleuven.be" },
     { name = "Mariana Montes", email = "mariana.montes@kuleuven.be" },
+    { name = "Paul Borgermans", email = "paul.borgermans@kuleuven.be" },
 ]
 
 [project.urls]
