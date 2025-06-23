@@ -1,5 +1,6 @@
+"""Retrieve data and metadata from iRODS regarding target Dataverse deposit"""
+
 import os
-import json
 import magic
 from irods.session import iRODSSession
 from irods.column import Criterion
@@ -19,24 +20,12 @@ def authenticate_iRODS(env_path):
     -------
     session: iRODS session / or False
     """
-    if os.path.exists(env_path):
-        env_file = os.getenv("iRODS_ENVIRONMENT_FILE", env_path)
+    try:
+        env_file = os.getenv("IRODS_ENVIRONMENT_FILE", env_path)
         session = iRODSSession(irods_env_file=env_file)
-        try:
-            with open(env_path) as file:
-                data = json.load(file)
-                session.collections.get(data["irods_cwd"])
-        except:
-            print(
-                "Invalid authentication please make sure the client is configured correctly"
-            )
-            return False
         return session
-    else:
-        print(
-            "The environment file does not exist please make sure the client is configured correctly"
-        )
-        return False
+    except Exception as e:
+        raise ValueError(e) from e
 
 
 def query_data(atr, val, session):
