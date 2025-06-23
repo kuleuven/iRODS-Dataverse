@@ -7,7 +7,7 @@ from irods2dataverse.to_dataverse import (
     get_dataset,
     validate_md,
 )
-from irods2dataverse import customClass
+from irods2dataverse import custom_dataverse_classes
 from unittest.mock import patch, Mock
 from irods2dataverse.to_dataverse import deposit_ds
 
@@ -21,7 +21,7 @@ class TestMdValidation(unittest.TestCase):
     def setUp(self):
         self.name = "Demo"
         self.alias = "demo"
-        self.expected_class = customClass.DemoDataset
+        self.expected_class = custom_dataverse_classes.DemoDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
 
@@ -56,7 +56,7 @@ class TestMdValidationRDR(TestMdValidation):
     def setUp(self):
         self.name = "RDR"
         self.alias = "rdr"
-        self.expected_class = customClass.RDRDataset
+        self.expected_class = custom_dataverse_classes.RDRDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
 
@@ -65,7 +65,7 @@ class TestMdValidationRDRPilot(TestMdValidation):
     def setUp(self):
         self.name = "RDR-pilot"
         self.alias = "rdr"
-        self.expected_class = customClass.RDRPilotDataset
+        self.expected_class = custom_dataverse_classes.RDRPilotDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
 
@@ -86,6 +86,6 @@ class TestAPI(unittest.TestCase):
 
     # md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
 
-    # fileURL, storageID = direct_upload.get_du_url(
+    # fileURL, storageID = direct_upload.get_direct_upload_url(
     #             ds.baseURL, dsPID, objSize, header_key
     #         )

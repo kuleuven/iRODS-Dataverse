@@ -1,5 +1,7 @@
-from pyDataverse.models import Dataset
+"""Modification of Dataset Classes referring to different Dataverse installations"""
+
 from importlib.resources import files
+from pyDataverse.models import Dataset
 
 
 class CustomDataset(Dataset):
