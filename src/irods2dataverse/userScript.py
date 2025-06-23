@@ -18,7 +18,7 @@ from rich.padding import Padding
 # Test with 2 files /set/home/datateam_set/iRODS2DV/20240718_demo
 # Use DVUploader and Include an option on which upload method should be chosen.
 
-# Dataverse installations are pre-configured, using custom_class.py and customization.ini.
+# Dataverse installations are pre-configured, using customClass.py and customization.ini.
 # This script implements the perspective where the individual data objects destined for publication are either annotated with metadata or their path is provided.
 # Another perspective that could be explored is the case where the dataset is all in a pre-specified iRODS collection and the structure is mirrored in Dataverse.
 
@@ -34,7 +34,6 @@ c = Console()
 
 def vertical_space(text, style="default", below=0, left=1):
     return c.print(Padding(text, (1, left, below, 0), style=style))
-
 
 # --- Print instructions for the metadata-driven process --- #
 c.print(
@@ -66,6 +65,8 @@ if __name__ == "__main__":
     )
     if session:
         c.print("You are now authenticated to iRODS", style=info)
+    else:
+        raise SystemExit
 
     # --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
     sleep(0.5)
@@ -315,18 +316,16 @@ if __name__ == "__main__":
     else:
         ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
         # --- Create information to pass on the header for direct upload --- #
-        header_key = {
-            "X-Dataverse-key": token,
-        }
+        header_key, header_ct = direct_upload.create_headers(token)
         for item in data_objects_list:
             vertical_space("")
             objChecksum, objMimetype, objSize, objDirectory = (
                 from_irods.get_object_info(item)
             )
-            fileURL, storageID = direct_upload.get_direct_upload_url(
+            fileURL, storageID = direct_upload.get_du_url(
                 ds.baseURL, dsPID, objSize, header_key
             )
-            du_step2 = direct_upload.put_in_s3(item, fileURL)
+            du_step2 = direct_upload.put_in_s3(item, fileURL, header_ct)
             md_dict = direct_upload.create_du_md(
                 storageID, item.name, objMimetype, objChecksum, objDirectory
             )
