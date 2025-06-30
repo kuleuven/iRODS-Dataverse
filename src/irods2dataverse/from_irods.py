@@ -1,139 +1,67 @@
 """Retrieve data and metadata from iRODS regarding target Dataverse deposit"""
 
+from typing import Tuple
 import magic
+from irods.session import iRODSSession
 from irods.column import Criterion
+from irods.data_object import iRODSDataObject
 from irods.models import Collection, DataObject, DataObjectMeta
 import irods.keywords as kw
 
 
-def query_data(atr, val, session):
-    """iRODS query to get the data objects destined for publication based on metadata.
-    Parameters
-    ----------
-    atr: str
-      the metadata attribute describing the status of publication
-    val: str --->> TO DO: CONSIDER LIST OF AV AS INPUT
-      the metadata value describing the status of publication, one of 'initiated', 'processed', 'deposited', 'published'
-    session: iRODS session
+def query_data(atr: str, val: str, session: iRODSSession) -> list[iRODSDataObject]:
+    """iRODS query to get the data objects destined for publication based on metadata"""
 
-    Returns
-    -------
-    lobj: list
-      list of the data object(s) including iRODS path
-    """
-
-    qobj = (
+    query_results = (
         session.query(Collection.name, DataObject.name)
         .filter(Criterion("=", DataObjectMeta.name, atr))
         .filter(Criterion("=", DataObjectMeta.value, val))
+        # TODO add optional units using filter object
     )
-    lobj = set(
-        session.data_objects.get(f"{item[Collection.name]}/{item[DataObject.name]}")
-        for item in qobj
+
+    data_object_paths = set(
+        f"{item[Collection.name]}/{item[DataObject.name]}" for item in query_results
     )
-    return list(lobj)
+    return [session.data_objects.get(path) for path in data_object_paths]
 
 
-def query_dv(atr, data_objects, installations):
-    """iRODS query to get the Dataverse installation for the data that are destined for publication if
-    specified as metadata dv.installation
-
-    Parameters
-    ----------
-    atr: str
-      the metadata attribute describing the Dataverse installation
-    data_object: irods.DataObject
-      Data object to get info from
-    installations: list
-      List of possible installations
-    session: iRODS session
-
-    Returns
-    -------
-    lMD: list
-      list of metadata values for the given attribute
-    """
-    installations_dict = {k: [] for k in installations}
-    installations_dict["missing"] = []
-    for item in data_objects:
-        md_installations = [
-            x.value for x in item.metadata.get_all(atr) if x.value in installations_dict
-        ]
-        if len(md_installations) == 1:
-            installations_dict[md_installations[0]].append(item)
-        elif len(md_installations) == 0:
-            installations_dict["missing"].append(item)
-        # if there are too many installations, the object is ignored
-
-    return {k: v for k, v in installations_dict.items() if len(v) > 0}
-
-
-def get_object_info(obj):
-    """Retrieve object information for direct upload.
-
-    Parameters
-    ----------
-    obj: iRODSDataObject
-      the object meant for publication
-
-    Returns
-    -------
-    objChecksum: str
-      SHA-256 checksum value of iRODS object
-    objMimetype: str
-      mimetype of iRODS object
-    objSize: str
-      size of iRODS object
-    objDirectory: str
-      current sub-directory of the iRODS object
-    """
+def get_object_info(obj: iRODSDataObject) -> Tuple[str, str, str]:
+    """Retrieve object information for direct upload"""
 
     # Get the checksum value from iRODS
-    chksumRes = obj.chksum()
-    objChecksum = chksumRes[5:]  # this is algorithm-specific
+    object_checksum = obj.chksum()[5:]  # this is algorithm-specific
 
     # Get the mimetype (from paul, mango portal)
     with obj.open("r") as f:
         blub = f.read(50 * 1024)
-        objMimetype = magic.from_buffer(blub, mime=True)
-
-    # Get the size of the object
-    objSize = obj.size + 1  # add 1 byte
+        object_mimetype = magic.from_buffer(blub, mime=True)
 
     # Get the path of the file in the project (to be replicated in Dataverse)
-    objDirectory = ""  # initialize the object directory
-    for item in str(obj.path).split("/")[4:-1]:  # exclude the realm
-        objDirectory = f"{objDirectory}/{item}"
+    path_relative_to_root = "/".join(obj.path.split("/")[4:-1])
 
-    return objChecksum, objMimetype, objSize, objDirectory
+    return object_checksum, object_mimetype, path_relative_to_root
 
 
-def save_md(item, atr, val, op):
-    """Add metadata in iRODS.
-
-    Parameters
-    ----------
-    item: str
-        Path and name of the data object in iRODS
-    atr: str
-        Name of metadata attribute
-    val: str
-        Value of metadata attribute
-    session: iRODS session
-    op: str
-        Metadata operation, one of "add" or "set".
-    """
+def save_metadata(
+    data_object: iRODSDataObject,
+    metadata_name: str,
+    metadata_value: str,
+    operation: str,
+):
+    """Add metadata in iRODS"""
 
     try:
-        if op == "add":
-            item.metadata.add(str(atr), str(val))
+        if operation == "add":
+            data_object.metadata.add(str(metadata_name), str(metadata_value))
             print(
-                f"Metadata attribute {atr} with value {val}> is added to data object {item}."
+                f"Metadata attribute {metadata_name} with value {metadata_value}> is added to data object {data_object}."
             )
             return True
-        elif op == "set":
-            item.metadata.set(f"{atr}", f"{val}")
-            print(f"Metadata attribute {atr} is set to <{val}> for data object {item}.")
+        elif operation == "set":
+            data_object.metadata.set(f"{metadata_name}", f"{metadata_value}")
+            print(
+                f"Metadata attribute {metadata_name} is set to <{metadata_value}> for data object {data_object}."
+            )
             return True
         else:
             print(
@@ -146,29 +74,18 @@ def save_md(item, atr, val, op):
         return False
 
 
-def save_df(data_object, trg_path, session):
+def save_to_local_file(
+    data_object: iRODSDataObject,
+    target_path: str,
+    session: iRODSSession,
+):
     """Save locally the iRODS data objects destined for publication
     Used for installations that do not support direct upload (Demo)
-
-    Parameters
-    ----------
-    objPath: str
-      iRODS path of a data object destined for publication
-    objName: str
-      Filename of a data object destined for publication
-    trg_path: str
-      Local directory to save data
-    session: iRODS session
     """
+    
     opts = {kw.FORCE_FLAG_KW: True}
     # TO DO: checksum in case download is not needed?
-    """
-    def checksum(f):
-        md5 = hashlib.md5()    
-        md5.update(open(f).read())
-        return md5.hexdigest()
 
-    def is_contents_same(f1, f2):
-        return checksum(f1) == checksum(f2)
-    """
-    session.data_objects.get(data_object.path, f"{trg_path}/{data_object.name}", **opts)
+    session.data_objects.get(
+        data_object.path, f"{target_path}/{data_object.name}", **opts
+    )

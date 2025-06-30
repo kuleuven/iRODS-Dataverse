@@ -3,6 +3,7 @@
 from typing import Tuple
 import requests
 from irods.data_object import iRODSDataObject
+from .from_irods import get_object_info
 
 
 def get_direct_upload_url(
@@ -52,22 +53,23 @@ def put_in_s3(obj: iRODSDataObject, file_url: str) -> requests.Response:
 
 def create_du_md(
     storage_id: str,
-    obj_name: str,
-    obj_mimetype: str,
-    obj_checksum: str,
-    obj_directory: str,
+    item: iRODSDataObject,
 ) -> dict:
     """Create metadata dictionary for direct upload of an iRODS object"""
 
+    object_checksum, object_mimetype, object_directory = (
+        get_object_info(item)
+    )
+
     obj_md_dict = {
         "description": "Description of directly uploaded file.",  # TO DO: get from iRODS metadata
-        "directoryLabel": obj_directory,
+        "directoryLabel": object_directory,
         "categories": ["Data"],
         "restrict": "false",
         "storageIdentifier": storage_id,
-        "fileName": obj_name,
-        "mimeType": obj_mimetype,
-        "checksum": {"@type": "SHA-256", "@value": obj_checksum},
+        "fileName": item.name,
+        "mimeType": object_mimetype,
+        "checksum": {"@type": "SHA-256", "@value": object_checksum},
     }
 
     return obj_md_dict

@@ -105,7 +105,7 @@ if __name__ == "__main__":
                 for item in list_input:
                     obj = session.data_objects.get(item)
                     data_objects_list.append(obj)
-                    if from_irods.save_md(obj, atr_publish, val, op="set"):
+                    if from_irods.save_metadata(obj, atr_publish, val, operation="set"):
                         c.print(
                             f"Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object."
                         )
@@ -135,10 +135,10 @@ if __name__ == "__main__":
 
     for item in data_objects_list:
         # Update status of publication in iRODS from 'initiated' to 'processed'
-        from_irods.save_md(item, atr_publish, "processed", op="set")
+        from_irods.save_metadata(item, atr_publish, "processed", operation="set")
         # Dataset status timestamp
-        from_irods.save_md(
-            item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+        from_irods.save_metadata(
+            item, "dv.publication.timestamp", datetime.datetime.now(), operation="set"
         )
         vertical_space("")
 
@@ -155,51 +155,14 @@ if __name__ == "__main__":
     )
     atr_dataverse = "dv.installation"
     installations = ["RDR", "Demo", "RDR-pilot"]
-    ldv = from_irods.query_dv(atr_dataverse, data_objects_list, installations)
-    if len(ldv) == 1 and "missing" not in ldv:
-        input_dataverse = list(ldv.keys())[0]
-        vertical_space(
-            f"Metadata with attribute <{atr_dataverse}> and value <{input_dataverse}> for the selected data objects are found in iRODS.",
-            style=info,
-        )
-    else:
-        if len(ldv) > 1:
-            vertical_space(
-                f"Not all the data objects are assigned to the same installation."
-            )
-        else:
-            vertical_space(
-                f"The selected objects have no attribute <{atr_dataverse}>.",
-                style=action,
-            )
-        data_objects_list = []
-        input_dataverse = Prompt.ask(
-            "Specify the configured Dataverse installation to publish the data",
-            choices=installations,
-            default="Demo",
-        )
-        if (
-            input_dataverse in ldv
-        ):  # why this logic that only if the selected dv is among the ones that were already used to tag the objects, only then we will tag the objects?
-            data_objects_list = ldv[input_dataverse]
-            c.print(
-                f"{len(ldv[input_dataverse])} items were tagged for this installation."
-            )
-        if "missing" in ldv:
-            if len(ldv) > 1:
-                add_missing = Confirm.ask(
-                    f"{len(ldv['missing'])} data objects had no metadata for the installation. Would you still want to submit them to this Dataverse installation?"
-                )
-            else:
-                add_missing = True
-            if add_missing:
-                for item in ldv["missing"]:
-                    from_irods.save_md(item, atr_dataverse, input_dataverse, op="set")
-                    data_objects_list.append(item)
-                c.print(
-                    f"Metadata with attribute <{atr_dataverse}> and value <{input_dataverse}> are added in the selected data objects.",
-                    style=action,
-                )
+    input_dataverse = Prompt.ask(
+        "Specify the configured Dataverse installation to publish the data",
+        choices=installations,
+        default="Demo",
+    )
+
+    for item in data_objects_list:
+        from_irods.save_metadata(item, atr_dataverse, input_dataverse, operation="set")
 
     # --- Set-up for the selected Dataverse installation --- #
     vertical_space(
@@ -286,9 +249,9 @@ if __name__ == "__main__":
     for item in data_objects_list:
         vertical_space("")
         # Dataset DOI
-        from_irods.save_md(item, "dv.ds.DOI", dsPID, op="add")
+        from_irods.save_metadata(item, "dv.ds.DOI", dsPID, operation="add")
         # # Dataset PURL
-        # from_irods.save_md(item, "dv.ds.PURL", dsPURL, op="set")
+        # from_irods.save_metadata(item, "dv.ds.PURL", dsPURL, op="set")
 
     vertical_space(
         f"The Dataset DOI is added as metadata to the selected data objects.",
@@ -303,16 +266,16 @@ if __name__ == "__main__":
         for item in data_objects_list:
             vertical_space("")
             # Save data locally
-            from_irods.save_df(
+            from_irods.save_to_local_file(
                 item, trg_path, session
             )  # download object locally, only for Demo
             # Upload file(s)
             md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
             # Update status of publication in iRODS from 'processed' to 'deposited'
-            from_irods.save_md(item, atr_publish, "deposited", op="set")
+            from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
             # Update timestamp
-            from_irods.save_md(
-                item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+            from_irods.save_metadata(
+                item, "dv.publication.timestamp", datetime.datetime.now(), operation="set"
             )
         shutil.rmtree(trg_path)
     else:
@@ -323,32 +286,30 @@ if __name__ == "__main__":
         }
         for item in data_objects_list:
             vertical_space("")
-            objChecksum, objMimetype, objSize, objDirectory = (
-                from_irods.get_object_info(item)
-            )
+  
             fileURL, storageID = direct_upload.get_direct_upload_url(
-                ds.baseURL, dsPID, objSize, header_key
+                ds.baseURL, dsPID, item.size + 1, header_key  # TODO check why + 1 (empty files?)
             )
             du_step2 = direct_upload.put_in_s3(item, fileURL)
             md_dict = direct_upload.create_du_md(
-                storageID, item.name, objMimetype, objChecksum, objDirectory
+                storageID, item
             )
             du_step3 = direct_upload.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
             # Update status of publication in iRODS from 'processed' to 'deposited'
-            from_irods.save_md(item, atr_publish, "deposited", op="set")
+            from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
             # Update timestamp
-            from_irods.save_md(
-                item, "dv.publication.timestamp", datetime.datetime.now(), op="set"
+            from_irods.save_metadata(
+                item, "dv.publication.timestamp", datetime.datetime.now(), operation="set"
             )
-            from_irods.save_md(
+            from_irods.save_metadata(
                 item,
                 "dv.df.storageIdentifier",
                 storageID,
-                op="add",
+                operation="add",
             )  # TO DO: for the metadata that are added and not set, make a repeatable composite field to group them together
 
     # # Add metadata in iRODS
-    # from_irods.save_md(
+    # from_irods.save_metadata(
     #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
     # )
 
