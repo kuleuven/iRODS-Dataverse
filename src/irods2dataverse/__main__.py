@@ -5,6 +5,8 @@ import datetime
 import tempfile
 import shutil
 from time import sleep
+from irods.session import iRODSSession
+
 
 import os.path
 from rich.console import Console
@@ -61,11 +63,12 @@ if __name__ == "__main__":
     # --- Provide the iRODS environment file to authenticate in a specific zone --- #
 
     vertical_space("Authenticate to iRODS zone...")
-    session = from_irods.authenticate_iRODS(
-        os.path.expanduser("~") + "/.irods/irods_environment.json"
-    )
-    if session:
+    try:
+        env_file = os.getenv("IRODS_ENVIRONMENT_FILE",  os.path.expanduser("~") + "/.irods/irods_environment.json")
+        session = iRODSSession(irods_env_file=env_file)
         c.print("You are now authenticated to iRODS", style=info)
+    except Exception as e:
+        raise ValueError(e) from e
 
     # --- Select Data: if there is no metadata specifying the object that needs to be published, ask user to provide the path --- #
     sleep(0.5)

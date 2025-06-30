@@ -1,31 +1,9 @@
 """Retrieve data and metadata from iRODS regarding target Dataverse deposit"""
 
-import os
 import magic
-from irods.session import iRODSSession
 from irods.column import Criterion
 from irods.models import Collection, DataObject, DataObjectMeta
 import irods.keywords as kw
-
-
-def authenticate_iRODS(env_path):
-    """Authenticate to iRODS, in the zone specified in the environment file.
-
-    Parameters
-    ----------
-    env_path: str
-      The filename and location of the JSON specification for the iRODS environment
-
-    Returns
-    -------
-    session: iRODS session / or False
-    """
-    try:
-        env_file = os.getenv("IRODS_ENVIRONMENT_FILE", env_path)
-        session = iRODSSession(irods_env_file=env_file)
-        return session
-    except Exception as e:
-        raise ValueError(e) from e
 
 
 def query_data(atr, val, session):
