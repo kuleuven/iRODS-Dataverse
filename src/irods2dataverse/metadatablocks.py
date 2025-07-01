@@ -3,8 +3,7 @@ from pyDataverse.api import NativeApi
 
 
 class Metadatablocks(object):
-    """Class to request metadatablocks from dv installation and create template.
-    """
+    """Class to request metadatablocks from dv installation and create template"""
 
     def __init__(self, dv_installation, dv_api_key, extra_fields=[]):
         self.dv_installation = dv_installation
@@ -64,36 +63,36 @@ class Metadatablocks(object):
     def _remove_childfields(self):
         """Removes the fields from the top level that already exists as childfields of a compound field"""
         for block in self.mdblocks:
+
+            fields = self.mdblocks[block]["fields"]    
+
             compound_fields = {
-                k: v
-                for k, v in self.mdblocks[block]["fields"].items()
-                if v["typeClass"] == "compound"
+                key: value
+                for key, value in fields.items()
+                if value.get("typeClass") == "compound"
             }  # get all the compound fields
-            double_fields = {}
-            for key in compound_fields:  # make a list with all the child fields
-                double_fields[key] = list(compound_fields[key]["childFields"])
-            for field in double_fields:
-                for child_field in double_fields[field]:
-                    del self.mdblocks[block]["fields"][
-                        child_field
-                    ]  # delete the child fields from the top level
+
+            child_fields_to_remove = []
+            for key in compound_fields.values():  # make a list with all the child fields
+                child_fields_to_remove.extend(key.get("childFields", []))
+
+            for child_field in child_fields_to_remove:
+                fields.pop(child_field, None)
 
     def write_clean_mdblocks(self):
-        """Gets metadatablocks from api, cleans them & writes to a json document."""
-        self._set_mdblocks()
-        self._remove_childfields()
+        """Get metadatablocks from api, cleans them & writes to a json document."""
+        self._clean_mdblocks()
         with open(f"{self.dv_installation}_metadatablocks_full.json", "w") as f:
             json.dump(self.mdblocks, f)
 
     def _clean_mdblocks(self):
-        """Gets metadatablocks from api and cleans them."""
+        """Get metadatablocks from api and cleans them."""
         self._set_mdblocks()
         self._remove_childfields()
 
 
     def set_all_controlled_vocabularies(self):
-        """ This function gets all the controlled vocabularies
-        """
+        """ This function gets all the controlled vocabularies"""
         if not self.mdblocks:  # create md_blocks if empty
             self._clean_mdblocks()
         for k, v in self.mdblocks["citation"]["fields"].items():
@@ -121,21 +120,8 @@ class Metadatablocks(object):
         new_field["typeName"] = value["name"]
         return new_field
 
-    def add_child(self, child_value: dict, child_key: str):
-        """
-        add childfields and return dictionary
-
-        Parameters:
-        ---------
-        cv: child value
-        ck: child key
-        extra_fields: list with extra fields that you want to include
-
-        Returns:
-        --------
-        filled in field template or false
-
-        """
+    def add_child(self, child_value: dict, child_key: str) -> dict:
+        """Add childfields and return dictionary"""
         if child_value["isRequired"] or child_key in self.extra_fields:
             if child_value["typeClass"] == "primitive":
                 new_field = self.create_field(child_value, "primitive")
@@ -146,9 +132,8 @@ class Metadatablocks(object):
             else:
                 return False
 
-    def add_required(self, all_blocks: dict, block: str):
-        """Function to add required fields, goes through all the blocks (citation, ...) and checks if required
-        """
+    def add_required(self, all_blocks: dict, block: str) -> list:
+        """Add the fields where isrequired is true OR in extra_fields"""
         all_fields = []
         for k, v in all_blocks[block]["fields"].items():
             if v["isRequired"] or k in self.extra_fields:  # check if required
@@ -218,13 +203,9 @@ if __name__ == "__main__":
         [
             "authorAffiliation",
             "datasetContactName",
-            "access",
-            "accessRights",
-            "dateAvailable",
-            "legitimateOptout",
-            "legalCaseNumber",
-        ],
+        ]
     )
     blocks.create_json_to_upload()
     # blocks.get_all_controlled_vocabularies()
-    #  blocks.write_clean_mdblocks()
+    blocks.write_clean_mdblocks()
+
