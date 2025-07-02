@@ -64,7 +64,10 @@ if __name__ == "__main__":
 
     vertical_space("Authenticate to iRODS zone...")
     try:
-        env_file = os.getenv("IRODS_ENVIRONMENT_FILE",  os.path.expanduser("~") + "/.irods/irods_environment.json")
+        env_file = os.getenv(
+            "IRODS_ENVIRONMENT_FILE",
+            os.path.expanduser("~") + "/.irods/irods_environment.json",
+        )
         session = iRODSSession(irods_env_file=env_file)
         c.print("You are now authenticated to iRODS", style=info)
     except Exception as e:
@@ -177,7 +180,7 @@ if __name__ == "__main__":
     path_to_template = ds.metadata_template
 
     # --- Create a Dataverse session --- #
-    api = to_dataverse.authenticate_DV(ds.baseURL, token)
+    api = to_dataverse.authenticate_to_dataverse(ds.baseURL, token)
 
     # --- Provide information on the obligatory metadata --- #
     vertical_space(
@@ -228,18 +231,18 @@ if __name__ == "__main__":
 
     # --- Validate metadata --- #
     md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
-    vmd = to_dataverse.validate_md(ds, md)
+    vmd = to_dataverse.validate_dataset_metadata(ds, md)
     while not (vmd):
         vertical_space(
             f"The metadata are not validated, modify <{md}>, save and hit enter to continue.",
             style=info,
         )
         md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
-        vmd = to_dataverse.validate_md(ds, md)
+        vmd = to_dataverse.validate_dataset_metadata(ds, md)
     vertical_space(f"The metadata are validated, the process continues.", style=info)
 
     # --- Deposit draft in selected Dataverse installation --- #
-    dsStatus, dsPID, dsID = to_dataverse.deposit_ds(api, ds)
+    dsStatus, dsPID, dsID = to_dataverse.deposit_dataset(api, ds)
     vertical_space(
         f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
         style=info,
@@ -270,12 +273,15 @@ if __name__ == "__main__":
                 item, trg_path, session
             )  # download object locally, only for Demo
             # Upload file(s)
-            md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
+            md = to_dataverse.deposit_datafile(api, dsPID, item.name, trg_path)
             # Update status of publication in iRODS from 'processed' to 'deposited'
             from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
             # Update timestamp
             from_irods.save_metadata(
-                item, "dv.publication.timestamp", datetime.datetime.now(), operation="set"
+                item,
+                "dv.publication.timestamp",
+                datetime.datetime.now(),
+                operation="set",
             )
         shutil.rmtree(trg_path)
     else:
@@ -286,20 +292,24 @@ if __name__ == "__main__":
         }
         for item in data_objects_list:
             vertical_space("")
-  
+
             fileURL, storageID = direct_upload.get_direct_upload_url(
-                ds.baseURL, dsPID, item.size + 1, header_key  # TODO check why + 1 (empty files?)
+                ds.baseURL,
+                dsPID,
+                item.size + 1,
+                header_key,  # TODO check why + 1 (empty files?)
             )
             du_step2 = direct_upload.put_in_s3(item, fileURL)
-            md_dict = direct_upload.create_du_md(
-                storageID, item
-            )
+            md_dict = direct_upload.create_du_md(storageID, item)
             du_step3 = direct_upload.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
             # Update status of publication in iRODS from 'processed' to 'deposited'
             from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
             # Update timestamp
             from_irods.save_metadata(
-                item, "dv.publication.timestamp", datetime.datetime.now(), operation="set"
+                item,
+                "dv.publication.timestamp",
+                datetime.datetime.now(),
+                operation="set",
             )
             from_irods.save_metadata(
                 item,

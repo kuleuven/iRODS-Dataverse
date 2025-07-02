@@ -1,4 +1,4 @@
-"""Reads CLI input with UTF-8 encoding and return str t fille-in metadata template"""
+"""Reads CLI input with UTF-8 encoding and returns filled-in metadata template"""
 
 import json
 import ast

@@ -80,9 +80,8 @@ def save_to_local_file(
     session: iRODSSession,
 ):
     """Save locally the iRODS data objects destined for publication
-    Used for installations that do not support direct upload (Demo)
-    """
-    
+    Used for installations that do not support direct upload (Demo)"""
+
     opts = {kw.FORCE_FLAG_KW: True}
     # TO DO: checksum in case download is not needed?
 
