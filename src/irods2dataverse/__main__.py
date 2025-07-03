@@ -34,7 +34,7 @@ warning = Style(color="red")
 c = Console()
 
 
-def vertical_space(text, style="default", below=0, left=1):
+def vertical_space(text, style: Style | str = "default", below=0, left=1):
     return c.print(Padding(text, (1, left, below, 0), style=style))
 
 
@@ -230,29 +230,44 @@ if __name__ == "__main__":
         return md
 
     # --- Validate metadata --- #
-    md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
-    vmd = to_dataverse.validate_dataset_metadata(ds, md)
-    while not (vmd):
-        vertical_space(
-            f"The metadata are not validated, modify <{md}>, save and hit enter to continue.",
-            style=info,
+    validated_metadata_template = False
+    template_is_validated = False  # the template is checked
+    while not (validated_metadata_template):
+        if template_is_validated:
+            vertical_space(
+                "The metadata template is not validated, provide a valid metadata template, "
+                "save and hit enter to continue.",
+                style=info,
+            )
+
+        metadata_template = ask_metadata(
+            path_to_template, path_to_schema, data_objects_list
         )
-        md = ask_metadata(path_to_template, path_to_schema, data_objects_list)
-        vmd = to_dataverse.validate_dataset_metadata(ds, md)
-    vertical_space(f"The metadata are validated, the process continues.", style=info)
+        validated_metadata_template = to_dataverse.validate_dataset_metadata_template(
+            ds, metadata_template
+        )
+        template_is_validated = True
+
+    vertical_space(
+        f"The metadata template is validated, the process continues.", style=info
+    )
 
     # --- Deposit draft in selected Dataverse installation --- #
-    dsStatus, dsPID, dsID = to_dataverse.deposit_dataset(api, ds)
-    vertical_space(
-        f"The Dataset publication metadata are: status = {dsStatus}, PID = {dsPID}, dsID = {dsID}",
-        style=info,
-    )
+    resp = api.create_dataset(ds.alias, ds.json()).json()
+    dataset_persistent_id = resp["data"]["persistentId"]
+
+    # vertical_space(
+    #     f"The Dataset publication PID = {dataset_persistent_id}",
+    #     style=info,
+    # )
 
     # --- Add metadata in iRODS --- #
     for item in data_objects_list:
         vertical_space("")
         # Dataset DOI
-        from_irods.save_metadata(item, "dv.ds.DOI", dsPID, operation="add")
+        from_irods.save_metadata(
+            item, "dv.ds.DOI", dataset_persistent_id, operation="add"
+        )
         # # Dataset PURL
         # from_irods.save_metadata(item, "dv.ds.PURL", dsPURL, op="set")
 
@@ -262,7 +277,7 @@ if __name__ == "__main__":
     )
 
     # --- Upload data files --- #
-    trg_path = tempfile.mkdtemp("dataverse_files")
+    local_path = tempfile.mkdtemp("dataverse_files")
 
     if input_dataverse == "Demo":
         ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
@@ -270,10 +285,12 @@ if __name__ == "__main__":
             vertical_space("")
             # Save data locally
             from_irods.save_to_local_file(
-                item, trg_path, session
+                item, local_path, session
             )  # download object locally, only for Demo
             # Upload file(s)
-            md = to_dataverse.deposit_datafile(api, dsPID, item.name, trg_path)
+            metadata_template = to_dataverse.deposit_datafile(
+                api, dataset_persistent_id, item.name, local_path
+            )
             # Update status of publication in iRODS from 'processed' to 'deposited'
             from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
             # Update timestamp
@@ -283,7 +300,7 @@ if __name__ == "__main__":
                 datetime.datetime.now(),
                 operation="set",
             )
-        shutil.rmtree(trg_path)
+        shutil.rmtree(local_path)
     else:
         ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
         # --- Create information to pass on the header for direct upload --- #
@@ -295,13 +312,15 @@ if __name__ == "__main__":
 
             fileURL, storageID = direct_upload.get_direct_upload_url(
                 ds.baseURL,
-                dsPID,
+                dataset_persistent_id,
                 item.size + 1,
                 header_key,  # TODO check why + 1 (empty files?)
             )
             du_step2 = direct_upload.put_in_s3(item, fileURL)
             md_dict = direct_upload.create_du_md(storageID, item)
-            du_step3 = direct_upload.post_to_ds(md_dict, ds.baseURL, dsPID, header_key)
+            du_step3 = direct_upload.post_to_ds(
+                md_dict, ds.baseURL, dataset_persistent_id, header_key
+            )
             # Update status of publication in iRODS from 'processed' to 'deposited'
             from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
             # Update timestamp

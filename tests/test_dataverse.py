@@ -5,7 +5,7 @@ from os import path
 from importlib.resources import files
 from irods2dataverse.to_dataverse import (
     get_dataset,
-    validate_dataset_metadata,
+    validate_dataset_metadata_template,
 )
 from irods2dataverse import custom_dataverse_classes
 from unittest.mock import patch, Mock
@@ -35,17 +35,17 @@ class TestMdValidation(unittest.TestCase):
         """Test that the contents of the metadata template are validated as correct"""
         with self.ds.metadata_template.open("r") as f:
             self.metadict = json.load(f)
-        self.assertTrue(validate_dataset_metadata(self.ds, self.metadict))
+        self.assertTrue(validate_dataset_metadata_template(self.ds, self.metadict))
         self.assertTrue(
-            validate_dataset_metadata(self.ds, str(self.ds.metadata_template))
+            validate_dataset_metadata_template(self.ds, str(self.ds.metadata_template))
         )
 
     def test_failing_validation(self):
         """Test different kinds of invalid inputs"""
-        self.assertFalse(validate_dataset_metadata(self.ds, 5))
-        self.assertFalse(validate_dataset_metadata(self.ds, {"a": 1, "b": 2}))
+        self.assertFalse(validate_dataset_metadata_template(self.ds, 5))
+        self.assertFalse(validate_dataset_metadata_template(self.ds, {"a": 1, "b": 2}))
         with self.assertRaises(FileNotFoundError):
-            validate_dataset_metadata(self.ds, "This is an invalid string")
+            validate_dataset_metadata_template(self.ds, "This is an invalid string")
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)

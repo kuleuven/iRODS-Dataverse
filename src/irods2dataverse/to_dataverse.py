@@ -1,12 +1,14 @@
 """Interacts with the Dataverse installation to initiate a deposit"""
 
-from typing import Container, Tuple
+import importlib
 import json
-from importlib.resources import files
+from configparser import ConfigParser
+from typing import Tuple
+
+from custom_dataverse_classes import CustomDataset
 from pyDataverse.api import NativeApi
 from pyDataverse.models import Datafile
 from pyDataverse.utils import read_file
-from configparser import ConfigParser
 
 
 def authenticate_to_dataverse(dataverse_url: str, dataverse_token: str) -> NativeApi:
@@ -24,24 +26,25 @@ def authenticate_to_dataverse(dataverse_url: str, dataverse_token: str) -> Nativ
 
 def instantiate_selected_class(
     installation_name: str, config: ConfigParser
-) -> Container:
+) -> CustomDataset:
     """Instantiate Dataset class based on selected Dataverse installation"""
 
     config_section = config[installation_name]
     modulename, classname = config_section["className"].split(".", 2)
-    importlib = __import__("importlib")
     module = importlib.import_module(f"irods2dataverse.{modulename}")
     selected_class = getattr(module, classname)
 
     return selected_class()
 
 
-def get_dataset(input_dataverse: str) -> Container:
+def get_dataset(input_dataverse: str) -> CustomDataset:
     """Create an empty dataset in the selected Dataverse installation"""
 
     # Read once the configuration file located in a hard-coded path
     config = ConfigParser()
-    config.read(str(files("resources").joinpath("customization.ini")))
+    config.read(
+        str(importlib.resources.files("resources").joinpath("customization.ini"))
+    )
     # Check that the Dataverse installation is configured
     try:
         # Instantiate the Dataset class of the selected Dataverse installation
@@ -56,7 +59,9 @@ def get_dataset(input_dataverse: str) -> Container:
     return dataset_instance
 
 
-def validate_dataset_metadata(dataset: Container, metadata_template: str) -> bool:
+def validate_dataset_metadata_template(
+    dataset: CustomDataset, metadata_template: str | dict
+) -> bool:
     """Check the metadata template is up-to-date"""
 
     if isinstance(metadata_template, str):
@@ -74,37 +79,21 @@ def validate_dataset_metadata(dataset: Container, metadata_template: str) -> boo
         return False
 
 
-def deposit_dataset(api: NativeApi, dataset: Container) -> Tuple[str, str, str]:
-    """Create a Dataverse dataset with user specified metadata"""
-
-    resp = api.create_dataset(dataset.alias, dataset.json()).json()
-    dataset_status = resp["status"]
-    dataset_persistent_identifier = resp["data"]["persistentId"]
-    dataset_identifier = resp["data"]["id"]
-    # resp = api.create_dataset_private_url(dsPID)
-    # dataset_private_url = resp.json()["data"]["link"]
-    # RDR does not allow PURL creation; move to Class definition?
-
-    return (
-        dataset_status,
-        dataset_persistent_identifier,
-        dataset_identifier,
-    )  # dataset_private_url
-
-
 def deposit_datafile(
     api: NativeApi,
     dataset_persistent_identifier: str,
     data_object_name: str,
-    inp_path: str,
+    local_path: str,
 ) -> dict:
-    """Upload the list of data files in Dataverse Dataset"""
+    """Upload each data files in Dataverse Dataset (when direct upload is not supported)"""
 
     datafile = Datafile()
     datafile.set({"pid": dataset_persistent_identifier, "filename": data_object_name})
     datafile.get()
     resp = api.upload_datafile(
-        dataset_persistent_identifier, f"{inp_path}/{data_object_name}", datafile.json()
+        dataset_persistent_identifier,
+        f"{local_path}/{data_object_name}",
+        datafile.json(),
     )
 
     print(f"{data_object_name} is uploaded")

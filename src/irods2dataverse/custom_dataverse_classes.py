@@ -1,6 +1,7 @@
 """Modification of Dataset Classes referring to different Dataverse installations"""
 
 from importlib.resources import files
+
 from pyDataverse.models import Dataset
 
 
@@ -14,10 +15,17 @@ class CustomDataset(Dataset):
     def mango_schema(self):
         return files("resources").joinpath(self._mangoSchema)
 
+    def __init__(self):
+        self.alias: str = ""
+        self.name: str = ""
+        self.baseURL: str = ""
+        self._metadataTemplate: str = ""
+        self._mangoSchema: str = ""
+
 
 class DemoDataset(CustomDataset):
-    def __init__(self, data=None):
-        super().__init__(data=None)
+    def __init__(self):
+        super().__init__()
         self.alias = "demo"
         self.name = "DemoDataset"
         self.baseURL = "https://demo.dataverse.org"
@@ -27,10 +35,8 @@ class DemoDataset(CustomDataset):
 
 class RDRDataset(CustomDataset):
 
-    def __init__(self, data=None):
-        #  super extends the original constructor otherwise replacing
-        super().__init__(data=None)
-        # self. ==> instance attribute instead of class attribute
+    def __init__(self):
+        super().__init__()
         self._Dataset__attr_import_dv_up_citation_fields_values.append(
             "technicalFormat"
         )
@@ -54,8 +60,8 @@ class RDRDataset(CustomDataset):
 
 
 class RDRPilotDataset(RDRDataset):
-    def __init__(self, data=None):
-        super().__init__(data=None)
+    def __init__(self):
+        super().__init__()
         self.alias = "rdr"
         self.name = "RDRPilotDataset"
         self.baseURL = "https://www.rdm.libis.kuleuven.be/"
