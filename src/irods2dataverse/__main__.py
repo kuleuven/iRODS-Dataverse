@@ -1,36 +1,28 @@
-from irods2dataverse import from_irods, to_dataverse, direct_upload, avu2json, cli_input
-import json
-import maskpass
 import datetime
-import tempfile
-import shutil
-from time import sleep
-from irods.session import iRODSSession
-
-
+import json
 import os.path
+import shutil
+import tempfile
+from time import sleep
+
+import maskpass
+from irods.session import iRODSSession
 from rich.console import Console
-from rich.style import Style
-from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
-from rich.table import Table
 from rich.padding import Padding
+from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
+from rich.style import Style
+from rich.table import Table
 
+from irods2dataverse import avu2json, cli_input, direct_upload, from_irods, to_dataverse
 
-# Test with 2 files /set/home/datateam_set/iRODS2DV/20240718_demo
-# Use DVUploader and Include an option on which upload method should be chosen.
-
-# Dataverse installations are pre-configured, using custom_dataverse_classes.py and customization.ini.
-# This script implements the perspective where the individual data objects destined for publication are either annotated with metadata or their path is provided.
-# Another perspective that could be explored is the case where the dataset is all in a pre-specified iRODS collection and the structure is mirrored in Dataverse.
-
-# define custom colors
+# Define custom colors
 info = Style(color="cyan")
 action = Style(color="yellow")
 warning = Style(color="red")
 
 
-# create a rich console
+# Create a rich console
 c = Console()
 
 
@@ -41,19 +33,17 @@ def vertical_space(text, style: Style | str = "default", below=0, left=1):
 # --- Print instructions for the metadata-driven process --- #
 c.print(
     Panel.fit(
-        """
-This is an implementation for programmatic publication of data from iRODS into a Dataverse installation.
+        """This is an implementation for programmatic publication of data from iRODS into a Dataverse installation. 
         
-To drive the process based on metadata, go to your selected zone and add the following metadata to at 
-least one data object for a configured Dataverse installation (e.g. Demo):      
-       
-    A: dv.publication   V: initiated                                         
-    A: dv.installation  V: Demo
-
-The configured Dataverse installations are: Demo, RDR, RDR-pilot  
-
-For more detailed instructions go to https://github.com/kuleuven/iRODS-Dataverse
-                   """,
+        To drive the process based on metadata, go to your selected zone and add the following metadata to 
+        at least one data object for a configured Dataverse installation (e.g. Demo):
+        
+        A: dv.publication   V: initiated
+        A: dv.installation  V: Demo
+        
+        The configured Dataverse installations are: Demo, RDR, RDR-pilot
+        
+        For more detailed instructions go to https://github.com/kuleuven/iRODS-Dataverse""",
         title="Instructions",
     )
 )
@@ -79,47 +69,56 @@ if __name__ == "__main__":
         "Select data in iRODS, via attached metadata in iRODS or via iRODS paths as typed input"
     )
 
-    atr_publish = "dv.publication"
-    val = "initiated"
+    METADATA_ATTRIBUTE_STATUS = "dv.publication"
+    METADATA_ATTRIBUTE_TIME = "dv.publication.timestamp"
+    METADATA_ATTRIBUTE_DOI = "dv.ds.DOI"
+    # METADATA_ATTRIBUTE_PURL = "dv.ds.PURL"
+
+    metadata_status_value = "initiated"
 
     data_objects_list = from_irods.query_data(
-        atr_publish, val, session
+        METADATA_ATTRIBUTE_STATUS, metadata_status_value, session
     )  # look for data based on A = dv.publication & value = initiated
 
     if len(data_objects_list) > 0:
         c.print(
-            f"Metadata with attribute <{atr_publish}> and value <{val}> are found in iRODS.",
+            f"Metadata with attribute <{METADATA_ATTRIBUTE_STATUS}> and value <{metadata_status_value}> are found in iRODS.",
             style=info,
         )
     else:
         c.print(
-            f"No metadata with attribute <{atr_publish}> and value <{val}> are found.",
+            f"No metadata with attribute <{METADATA_ATTRIBUTE_STATUS}> and value <{metadata_status_value}> are found.",
             style=info,
         )
         while True:
             vertical_space("")
-            inp_i = Prompt.ask(
+            input_item = Prompt.ask(
                 "Provide the full iRODS path and name of the data object. To add multiple objects use a list ['path1', 'path2']. Press Enter to submit. Leave blank and press Enter to end."
             )
-            if not inp_i and len(data_objects_list) > 0:
+            if not input_item and len(data_objects_list) > 0:
                 break
             try:
-                list_input = cli_input.to_list(inp_i)
+                list_input = cli_input.to_list(input_item)
                 for item in list_input:
-                    obj = session.data_objects.get(item)
-                    data_objects_list.append(obj)
-                    if from_irods.save_metadata(obj, atr_publish, val, operation="set"):
+                    irods_object = session.data_objects.get(item)
+                    data_objects_list.append(irods_object)
+                    if from_irods.save_metadata(
+                        irods_object,
+                        METADATA_ATTRIBUTE_STATUS,
+                        metadata_status_value,
+                        operation="set",
+                    ):
                         c.print(
-                            f"Metadata with attribute <{atr_publish}> and value <{val}> are added in the selected data object."
+                            f"Metadata with attribute <{METADATA_ATTRIBUTE_STATUS}> and value <{metadata_status_value}> are added in the selected data object."
                         )
                     else:
                         c.print(
-                            f"Failed to add or set metadata in iRODS",
+                            "Failed to add or set metadata in iRODS",
                             style=warning,
                         )
-            except Exception as e:  # change this to specific exception
+            except Exception:
                 c.print(
-                    f"The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/filename",
+                    "The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/filename",
                     style=warning,
                 )
 
@@ -138,17 +137,22 @@ if __name__ == "__main__":
 
     for item in data_objects_list:
         # Update status of publication in iRODS from 'initiated' to 'processed'
-        from_irods.save_metadata(item, atr_publish, "processed", operation="set")
+        from_irods.save_metadata(
+            item, METADATA_ATTRIBUTE_STATUS, "processed", operation="set"
+        )
         # Dataset status timestamp
         from_irods.save_metadata(
-            item, "dv.publication.timestamp", datetime.datetime.now(), operation="set"
+            item,
+            METADATA_ATTRIBUTE_TIME,
+            str(datetime.datetime.now()),
+            operation="set",
         )
         vertical_space("")
 
     sleep(0.5)
 
     vertical_space(
-        f"Metadata attribute <{atr_publish}> is updated to <processed> for the selected objects.",
+        f"Metadata attribute <{METADATA_ATTRIBUTE_STATUS}> is updated to <processed> for the selected objects.",
         style=info,
     )
 
@@ -156,31 +160,35 @@ if __name__ == "__main__":
     vertical_space(
         "Select one of the configured Dataverse installations, via attached metadata in iRODS or via typed input."
     )
-    atr_dataverse = "dv.installation"
-    installations = ["RDR", "Demo", "RDR-pilot"]
+    METADATA_ATTRIBUTE_INSTALLATION = "dv.installation"
+    installations_list = ["RDR", "Demo", "RDR-pilot"]
     input_dataverse = Prompt.ask(
         "Specify the configured Dataverse installation to publish the data",
-        choices=installations,
+        choices=installations_list,
         default="Demo",
     )
 
     for item in data_objects_list:
-        from_irods.save_metadata(item, atr_dataverse, input_dataverse, operation="set")
+        from_irods.save_metadata(
+            item, METADATA_ATTRIBUTE_INSTALLATION, input_dataverse, operation="set"
+        )
 
     # --- Set-up for the selected Dataverse installation --- #
     vertical_space(
         f"Provide your Token for <{input_dataverse}> Dataverse installation or the name of its environment variable."
     )
-    token = maskpass.askpass(prompt="", mask="*")
-    token = os.getenv(token, token)
+    INSTALLATION_TOKEN = maskpass.askpass(prompt="", mask="*")
+    INSTALLATION_TOKEN = os.getenv(INSTALLATION_TOKEN, INSTALLATION_TOKEN)
 
     # --- Validate that the selected Dataverse installations is configured and create a Dataset --- #
-    ds = to_dataverse.get_dataset(input_dataverse)
-    path_to_schema = ds.mango_schema
-    path_to_template = ds.metadata_template
+    dataverse_dataset = to_dataverse.get_dataset(input_dataverse)
+    path_to_schema = dataverse_dataset.mango_schema
+    path_to_template = dataverse_dataset.metadata_template
 
     # --- Create a Dataverse session --- #
-    api = to_dataverse.authenticate_to_dataverse(ds.baseURL, token)
+    api = to_dataverse.authenticate_to_dataverse(
+        dataverse_dataset.baseURL, INSTALLATION_TOKEN
+    )
 
     # --- Provide information on the obligatory metadata --- #
     vertical_space(
@@ -188,7 +196,9 @@ if __name__ == "__main__":
     )
 
     # --- Retrieve filled-in metadata --- #
-    def ask_metadata(path_to_template, path_to_schema, data_objects_list):
+    def ask_metadata(
+        path_to_template: str, path_to_schema: str, data_objects_list: list
+    ) -> dict:
         """..."""
         if Confirm.ask(
             "Are you ManGO user and have you filled in the ManGO metadata schema for your Dataverse installation?\n"
@@ -204,30 +214,32 @@ if __name__ == "__main__":
                     "Sorry, no schema metadata for this Dataverse installation was found, let's try again!"
                 )
                 return ask_metadata(path_to_template, path_to_schema, data_objects_list)
-            md = avu2json.get_template(path_to_template, metadata)
+            dataset_metadata = avu2json.get_template(path_to_template, metadata)
         elif Confirm.ask(
             "Would you like to provide the necessary metadata using the command line interface?\n"
         ):
-            md = cli_input.fill_in_md_template(path_to_template)
+            dataset_metadata = cli_input.fill_in_md_template(path_to_template)
         else:
-            md = ""
-            while not os.path.exists(md):
-                md = Prompt.ask(
+            dataset_metadata = ""
+            while not os.path.exists(dataset_metadata):
+                dataset_metadata = Prompt.ask(
                     f"""Provide the path for the filled-in Dataset metadata. This JSON file can either match the template <{path_to_template}> or be the simplified (short JSON) version.""",
                     default=path_to_template,
                 )
-            with open(md, "r") as f:
+            with open(dataset_metadata, "r") as f:
                 try:
-                    md = json.load(f)
-                except:
+                    dataset_metadata = json.load(f)
+                except Exception:
                     raise IOError("The file could not be read. Is this a valid JSON?")
-                if "datasetVersion" not in md:
+                if "datasetVersion" not in dataset_metadata:
                     try:
-                        md = avu2json.get_template(path_to_template, md)
-                    except:
+                        dataset_metadata = avu2json.get_template(
+                            path_to_template, dataset_metadata
+                        )
+                    except Exception:
                         raise ValueError("The JSON is not in the correct format.")
 
-        return md
+        return dataset_metadata
 
     # --- Validate metadata --- #
     validated_metadata_template = False
@@ -241,20 +253,22 @@ if __name__ == "__main__":
             )
 
         metadata_template = ask_metadata(
-            path_to_template, path_to_schema, data_objects_list
+            str(path_to_template), str(path_to_schema), data_objects_list
         )
         validated_metadata_template = to_dataverse.validate_dataset_metadata_template(
-            ds, metadata_template
+            dataverse_dataset, metadata_template
         )
         template_is_validated = True
 
     vertical_space(
-        f"The metadata template is validated, the process continues.", style=info
+        "The metadata template is validated, the process continues.", style=info
     )
 
     # --- Deposit draft in selected Dataverse installation --- #
-    resp = api.create_dataset(ds.alias, ds.json()).json()
-    dataset_persistent_id = resp["data"]["persistentId"]
+    api_response = api.create_dataset(
+        dataverse_dataset.alias, dataverse_dataset.json()
+    ).json()
+    dataset_persistent_id = api_response["data"]["persistentId"]
 
     # vertical_space(
     #     f"The Dataset publication PID = {dataset_persistent_id}",
@@ -266,13 +280,13 @@ if __name__ == "__main__":
         vertical_space("")
         # Dataset DOI
         from_irods.save_metadata(
-            item, "dv.ds.DOI", dataset_persistent_id, operation="add"
+            item, METADATA_ATTRIBUTE_DOI, dataset_persistent_id, operation="add"
         )
         # # Dataset PURL
-        # from_irods.save_metadata(item, "dv.ds.PURL", dsPURL, op="set")
+        # from_irods.save_metadata(item, METADATA_ATTRIBUTE_PURL, dsPURL, op="set")
 
     vertical_space(
-        f"The Dataset DOI is added as metadata to the selected data objects.",
+        "The Dataset DOI is added as metadata to the selected data objects.",
         style=info,
     )
 
@@ -280,7 +294,7 @@ if __name__ == "__main__":
     local_path = tempfile.mkdtemp("dataverse_files")
 
     if input_dataverse == "Demo":
-        ## OPTION 1: LOCAL DOWNLOAD (for Demo installation)
+        # OPTION 1: LOCAL DOWNLOAD (for Demo installation)
         for item in data_objects_list:
             vertical_space("")
             # Save data locally
@@ -292,71 +306,64 @@ if __name__ == "__main__":
                 api, dataset_persistent_id, item.name, local_path
             )
             # Update status of publication in iRODS from 'processed' to 'deposited'
-            from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
+            from_irods.save_metadata(
+                item, METADATA_ATTRIBUTE_STATUS, "deposited", operation="set"
+            )
             # Update timestamp
             from_irods.save_metadata(
                 item,
-                "dv.publication.timestamp",
-                datetime.datetime.now(),
+                METADATA_ATTRIBUTE_TIME,
+                str(datetime.datetime.now()),
                 operation="set",
             )
         shutil.rmtree(local_path)
     else:
-        ## OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
+        # OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
         # --- Create information to pass on the header for direct upload --- #
         header_key = {
-            "X-Dataverse-key": token,
+            "X-Dataverse-key": INSTALLATION_TOKEN,
         }
         for item in data_objects_list:
             vertical_space("")
 
-            fileURL, storageID = direct_upload.get_direct_upload_url(
-                ds.baseURL,
+            file_url, storage_id = direct_upload.get_direct_upload_url(
+                dataverse_dataset.baseURL,
                 dataset_persistent_id,
                 item.size + 1,
                 header_key,  # TODO check why + 1 (empty files?)
             )
-            du_step2 = direct_upload.put_in_s3(item, fileURL)
-            md_dict = direct_upload.create_du_md(storageID, item)
-            du_step3 = direct_upload.post_to_ds(
-                md_dict, ds.baseURL, dataset_persistent_id, header_key
+            put_in_s3_response = direct_upload.put_in_s3(item, file_url)
+            metadata_dictionary = direct_upload.create_direct_upload_metadata(
+                storage_id, item
+            )
+            post_to_dataset_response = direct_upload.post_to_dataset(
+                metadata_dictionary,
+                dataverse_dataset.baseURL,
+                dataset_persistent_id,
+                header_key,
             )
             # Update status of publication in iRODS from 'processed' to 'deposited'
-            from_irods.save_metadata(item, atr_publish, "deposited", operation="set")
+            from_irods.save_metadata(
+                item, METADATA_ATTRIBUTE_STATUS, "deposited", operation="set"
+            )
             # Update timestamp
             from_irods.save_metadata(
                 item,
-                "dv.publication.timestamp",
-                datetime.datetime.now(),
+                METADATA_ATTRIBUTE_TIME,
+                str(datetime.datetime.now()),
                 operation="set",
             )
             from_irods.save_metadata(
                 item,
                 "dv.df.storageIdentifier",
-                storageID,
+                storage_id,
                 operation="add",
-            )  # TO DO: for the metadata that are added and not set, make a repeatable composite field to group them together
-
-    # # Add metadata in iRODS
-    # from_irods.save_metadata(
-    #     f"{objPath[i]}/{objName[i]}", "dv.df.id", df_id, session, op="set"
-    # )
+            )
 
     vertical_space(
-        f"Metadata attribute <{atr_publish}> is updated to <deposited> for the selected data objects.",
+        f"Metadata attribute <{METADATA_ATTRIBUTE_STATUS}> is updated to <deposited> for the selected data objects.",
         style=info,
     )
-
-    # Additional metadata could be extracted from the filled-in Dataverse metadata template (e.g. author information)
-
-    # Next step - 1: Publication / Send for review via Dataverse installation UI
-    # The current agreement is to send for publication via the Dataverse UI.
-    # This is because different procedures may apply in each Dataverse installation.
-
-    # Next step - 2: Update the metadata in iRODS
-    # From the iRODS side, to update the status of the publication (atr_publish) from deposited to "published", we need to check the situation in Dataverse.
-    # With periodic checks, query for the DOI of the dataset and check in the metadata if the dataset is published.
-    # We have talked about running checksums to see if the publication data are altered outside iRODS.
 
     # Clean-up iRODS session
     session.cleanup()

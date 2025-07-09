@@ -39,7 +39,7 @@ def put_in_s3(obj: iRODSDataObject, file_url: str) -> requests.Response:
     # create headers with content type for data transmission: used in step-2
     header_content_type = {
         "Content-Type": "application/x-www-form-urlencoded",
-    }  #  content type for data transmission
+    }
 
     # open the iRODS object
     with obj.open("r") as data:
@@ -51,17 +51,15 @@ def put_in_s3(obj: iRODSDataObject, file_url: str) -> requests.Response:
     return response
 
 
-def create_du_md(
+def create_direct_upload_metadata(
     storage_id: str,
     item: iRODSDataObject,
 ) -> dict:
     """Create metadata dictionary for direct upload of an iRODS object"""
 
-    object_checksum, object_mimetype, object_directory = (
-        get_object_info(item)
-    )
+    object_checksum, object_mimetype, object_directory = get_object_info(item)
 
-    obj_md_dict = {
+    file_metadata = {
         "description": "Description of directly uploaded file.",  # TO DO: get from iRODS metadata
         "directoryLabel": object_directory,
         "categories": ["Data"],
@@ -72,10 +70,10 @@ def create_du_md(
         "checksum": {"@type": "SHA-256", "@value": object_checksum},
     }
 
-    return obj_md_dict
+    return file_metadata
 
 
-def post_to_ds(
+def post_to_dataset(
     obj_md_dict: dict, base_url: str, dataset_doi: str, header_key: dict
 ) -> requests.Response:
     """POST request for direct upload to return json string"""
