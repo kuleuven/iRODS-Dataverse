@@ -1,4 +1,5 @@
 import json
+
 from pyDataverse.api import NativeApi
 
 
@@ -73,26 +74,27 @@ class Metadatablocks(object):
             }  # get all the compound fields
 
             child_fields_to_remove = []
-            for key in compound_fields.values():  # make a list with all the child fields
+            for key in compound_fields.values(): 
                 child_fields_to_remove.extend(key.get("childFields", []))
 
             for child_field in child_fields_to_remove:
                 fields.pop(child_field, None)
-
-    def write_clean_mdblocks(self):
-        """Get metadatablocks from api, cleans them & writes to a json document."""
-        self._clean_mdblocks()
-        with open(f"{self.dv_installation}_metadatablocks_full.json", "w") as f:
-            json.dump(self.mdblocks, f)
 
     def _clean_mdblocks(self):
         """Get metadatablocks from api and cleans them."""
         self._set_mdblocks()
         self._remove_childfields()
 
+    def write_clean_mdblocks(self):
+        """Get metadatablocks from api, cleans them & writes to a json document."""
+        if not self.mdblocks:
+            self._clean_mdblocks()
+        with open(f"{self.dv_installation}_metadatablocks_full.json", "w") as f:
+            json.dump(self.mdblocks, f)
 
-    def set_all_controlled_vocabularies(self):
-        """ This function gets all the controlled vocabularies"""
+ 
+    def _set_all_controlled_vocabularies(self):
+        """Get all the controlled vocabularies and set instance variable"""
         if not self.mdblocks:  # create md_blocks if empty
             self._clean_mdblocks()
         for k, v in self.mdblocks["citation"]["fields"].items():
@@ -104,11 +106,9 @@ class Metadatablocks(object):
                         self.all_controlled_vocabularies[ck] = cv[
                             "controlledVocabularyValues"
                         ]
-        # print(self.all_controlled_vocabularies)
-
 
     def create_field(self, value: dict, typeClass: str, compound=None) -> dict:
-        """ This function makes a copy of the template (field_info) and fills in
+        """Make a copy of a template field and fill in
         the necessary information based on the provided parameters: either 
         compound or not compound.
         """
@@ -121,7 +121,7 @@ class Metadatablocks(object):
         return new_field
 
     def add_child(self, child_value: dict, child_key: str) -> dict:
-        """Add childfields and return dictionary"""
+        """Add child field and return dictionary"""
         if child_value["isRequired"] or child_key in self.extra_fields:
             if child_value["typeClass"] == "primitive":
                 new_field = self.create_field(child_value, "primitive")
@@ -133,7 +133,7 @@ class Metadatablocks(object):
                 return False
 
     def add_required(self, all_blocks: dict, block: str) -> list:
-        """Add the fields where isrequired is true OR in extra_fields"""
+        """Add the fields where isRequired is true OR in extra_fields"""
         all_fields = []
         for k, v in all_blocks[block]["fields"].items():
             if v["isRequired"] or k in self.extra_fields:  # check if required
@@ -162,9 +162,10 @@ class Metadatablocks(object):
                     all_fields.append(new_field)
         return all_fields
 
-    def create_json_to_upload(self):
-        """This function creates & writes the json"""
-        self._clean_mdblocks()
+    def create_dataverse_template(self):
+        """Write template json document"""
+        if not self.mdblocks:
+            self._clean_mdblocks()
         block_dict = {}
         for block in self.basic_blocks:
             try:
@@ -182,15 +183,13 @@ class Metadatablocks(object):
         with open(f"{self.dv_installation}_md.json", "w") as f:
             json.dump(total_template, f)
 
-    def find_controlled_vocabulary(self, name: str) -> dict:
-        """ This method takes the typeName of a field and
-        returns a list of the possible values for the controlled vocabulary
-        """
+    def get_controlled_vocabulary(self, field_name: str) -> list:
+        """get controlled vocabulary for field"""
         if not self.all_controlled_vocabularies:
-            self.get_all_controlled_vocabularies()
+            self._set_all_controlled_vocabularies()
 
-        if name in self.all_controlled_vocabularies:
-            controlled_vocabulary = self.all_controlled_vocabularies[name]
+        if field_name in self.all_controlled_vocabularies:
+            controlled_vocabulary = self.all_controlled_vocabularies[field_name]
         return controlled_vocabulary
 
 
@@ -205,7 +204,6 @@ if __name__ == "__main__":
             "datasetContactName",
         ]
     )
-    blocks.create_json_to_upload()
-    # blocks.get_all_controlled_vocabularies()
+    blocks.create_dataverse_template()
     blocks.write_clean_mdblocks()
 
