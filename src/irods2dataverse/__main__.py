@@ -177,8 +177,8 @@ if __name__ == "__main__":
     vertical_space(
         f"Provide your Token for <{input_dataverse}> Dataverse installation or the name of its environment variable."
     )
-    INSTALLATION_TOKEN = maskpass.askpass(prompt="", mask="*")
-    INSTALLATION_TOKEN = os.getenv(INSTALLATION_TOKEN, INSTALLATION_TOKEN)
+    DATAVERSE_TOKEN = maskpass.askpass(prompt="", mask="*")
+    DATAVERSE_TOKEN = os.getenv(DATAVERSE_TOKEN, DATAVERSE_TOKEN)
 
     # --- Validate that the selected Dataverse installations is configured and create a Dataset --- #
     dataverse_dataset = to_dataverse.get_dataset(input_dataverse)
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
     # --- Create a Dataverse session --- #
     api = to_dataverse.authenticate_to_dataverse(
-        dataverse_dataset.baseURL, INSTALLATION_TOKEN
+        dataverse_dataset.baseURL, DATAVERSE_TOKEN
     )
 
     # --- Provide information on the obligatory metadata --- #
@@ -321,7 +321,7 @@ if __name__ == "__main__":
         # OPTION 2: DIRECT UPLOAD (for RDR and RDR-pilot)
         # --- Create information to pass on the header for direct upload --- #
         header_key = {
-            "X-Dataverse-key": INSTALLATION_TOKEN,
+            "X-Dataverse-key": DATAVERSE_TOKEN,
         }
         for item in data_objects_list:
             vertical_space("")
