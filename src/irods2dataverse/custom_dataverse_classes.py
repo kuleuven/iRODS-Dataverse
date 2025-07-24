@@ -16,6 +16,7 @@ class CustomDataset(Dataset):
         return files("resources").joinpath(self._mangoSchema)
 
     def __init__(self):
+        super().__init__()
         self.alias: str = ""
         self.name: str = ""
         self.baseURL: str = ""

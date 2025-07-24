@@ -3,7 +3,6 @@
 import json
 import ast
 from rich.prompt import Prompt
-from pathlib import Path
 import re
 from datetime import datetime
 
@@ -64,7 +63,8 @@ def get_controlled_vocabulary_list(name):
 
 
 def check_type_class(field):
-    """Checks typeClass (primive, compound, controlled vocabulary) for each field and redirects to appropriate method."""
+    """Checks typeClass (primitive, compound, controlled vocabulary)
+    for each field and redirects to appropriate method."""
 
     match field["typeClass"]:
         case "primitive":

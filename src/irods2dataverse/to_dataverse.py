@@ -3,9 +3,8 @@
 import importlib
 import json
 from configparser import ConfigParser
-from typing import Tuple
 
-from custom_dataverse_classes import CustomDataset
+from irods2dataverse.custom_dataverse_classes import CustomDataset
 from pyDataverse.api import NativeApi
 from pyDataverse.models import Datafile
 from pyDataverse.utils import read_file

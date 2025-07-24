@@ -50,7 +50,6 @@ class Metadatablocks(object):
                     "this dataverse is not configured: the following installations are available: Demo, RDR, RDR-pilot"
                 )
 
-
     def _set_mdblocks(self):
         """Sets instance variable mdblocks."""
         self._set_dv_url()
@@ -65,7 +64,7 @@ class Metadatablocks(object):
         """Removes the fields from the top level that already exists as childfields of a compound field"""
         for block in self.mdblocks:
 
-            fields = self.mdblocks[block]["fields"]    
+            fields = self.mdblocks[block]["fields"]
 
             compound_fields = {
                 key: value
@@ -74,7 +73,7 @@ class Metadatablocks(object):
             }  # get all the compound fields
 
             child_fields_to_remove = []
-            for key in compound_fields.values(): 
+            for key in compound_fields.values():
                 child_fields_to_remove.extend(key.get("childFields", []))
 
             for child_field in child_fields_to_remove:
@@ -92,7 +91,6 @@ class Metadatablocks(object):
         with open(f"{self.dv_installation}_metadatablocks_full.json", "w") as f:
             json.dump(self.mdblocks, f)
 
- 
     def _set_all_controlled_vocabularies(self):
         """Get all the controlled vocabularies and set instance variable"""
         if not self.mdblocks:  # create md_blocks if empty
@@ -109,7 +107,7 @@ class Metadatablocks(object):
 
     def create_field(self, value: dict, typeClass: str, compound=None) -> dict:
         """Make a copy of a template field and fill in
-        the necessary information based on the provided parameters: either 
+        the necessary information based on the provided parameters: either
         compound or not compound.
         """
         new_field = self.field_template.copy()
@@ -202,8 +200,7 @@ if __name__ == "__main__":
         [
             "authorAffiliation",
             "datasetContactName",
-        ]
+        ],
     )
     blocks.create_dataverse_template()
     blocks.write_clean_mdblocks()
-
