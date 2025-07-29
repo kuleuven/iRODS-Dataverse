@@ -96,7 +96,19 @@
                                 "typeName": "accessRights",
                                 "multiple": false,
                                 "typeClass": "controlledVocabulary",
-                                "value": "...open/restricted/embargoed/closed.."
+                                "value": "open/restricted/embargoed/closed"
+                            },
+                            "dateAvailable": {
+                                "typeName": "dateAvailable",
+                                "multiple": false,
+                                "typeClass": "primitive",
+                                "value": "YYYY-MM-DD"
+                            },
+                            "legitimateOptout": {
+                                "typeName": "legitimateOptout",
+                                "multiple": false,
+                                "typeClass": "controlledVocabulary",
+                                "value": "privacy/intellectual property rights/ethical aspects/aspects of dual use/other"
                             }
                         }
                     }
