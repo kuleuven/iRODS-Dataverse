@@ -72,7 +72,7 @@ def check_type_class(field):
         case "compound":
             compound_field(field)
         case "controlledVocabulary":
-            get_controlled_vocabulary(field)  # TO DO: Check when we use click
+            get_controlled_vocabulary(field)  # TODO: Check when we use click
 
 
 def get_primitive_field(field):
@@ -112,7 +112,7 @@ def compound_field(field):
                 check_type_class(child_value)
     else:
         for child_value in field["value"].values():
-            check_type_class([child_value])
+            check_type_class(child_value)
 
 
 def get_email(field):
