@@ -98,7 +98,7 @@ if __name__ == "__main__":
             if not input_item and len(data_objects_list) > 0:
                 break
             try:
-                list_input = cli_input.to_list(input_item)
+                list_input = cli_input.to_list(input_item) if isinstance(input_item, list) else [input_item]
                 for item in list_input:
                     irods_object = session.data_objects.get(item)
                     data_objects_list.append(irods_object)
