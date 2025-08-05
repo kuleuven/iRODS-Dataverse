@@ -11,12 +11,12 @@ def to_list(input: str) -> list:
     """Converts user input to python list given a specific input pattern"""
 
     try: input_as_list = ast.literal_eval(input)
-    except:
-        return [input]
+    except (ValueError, SyntaxError): # if it is a string
+        return [input] 
     if isinstance(input_as_list, list):  # TO DO: change with click
         return input_as_list
     else:
-        return [input]
+        raise Exception("Bad input")
 
 
 def get_controlled_vocabulary_list(name):
