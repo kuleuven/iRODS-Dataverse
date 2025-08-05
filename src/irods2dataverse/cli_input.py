@@ -45,7 +45,7 @@ def get_controlled_vocabulary_list(name):
             "description": "Controlled list of subjects for DEMO Dataverse",
         },
         "accessRights": {
-            "values": ["open", "restricted", "embargoed", "closed"],
+            "values": ["restricted", "embargoed", "closed", "open"],
             "description": "Controlled list of access rights for RDR",
         },
         "legitimateOptout": {
@@ -96,7 +96,7 @@ def get_controlled_vocabulary(field):
 
     controlled_vocabulary_list = get_controlled_vocabulary_list(field["typeName"])
     value = Prompt.ask(
-        f"Choose one {field['typeName']} from the controlled vocabulary (additional values can be added later):",
+        f"Choose one {field['typeName']} from the controlled vocabulary:",
         choices=controlled_vocabulary_list,
         default=controlled_vocabulary_list[-1],
     )
