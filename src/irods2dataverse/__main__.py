@@ -98,7 +98,7 @@ if __name__ == "__main__":
             if not input_item and len(data_objects_list) > 0:
                 break
             try:
-                list_input = cli_input.to_list(input_item) 
+                list_input = cli_input.to_list(input_item)
             except Exception:
                 c.print(
                     "Please submit either a single path without quotation marks or a list ['path1', 'path2']",
@@ -106,11 +106,12 @@ if __name__ == "__main__":
                 )
                 continue
             for item in list_input:
-                try: 
+                try:
                     irods_object = session.data_objects.get(item)
                 except Exception:
                     c.print(
-                        "The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/filename \n ",
+                        f"The path of the data object <{item}> is not correct. Please provide a correct path. \n "
+                        "Hint: /zone/home/collection/filename \n ",
                         style=warning,
                     )
                     continue
@@ -129,7 +130,6 @@ if __name__ == "__main__":
                         "Failed to add or set metadata in iRODS",
                         style=warning,
                     )
-
 
     sleep(0.5)
     # --- Print a table of the selected data --- #
