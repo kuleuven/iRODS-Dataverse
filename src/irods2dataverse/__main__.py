@@ -99,28 +99,37 @@ if __name__ == "__main__":
                 break
             try:
                 list_input = cli_input.to_list(input_item)
-                for item in list_input:
-                    irods_object = session.data_objects.get(item)
-                    data_objects_list.append(irods_object)
-                    if from_irods.save_metadata(
-                        irods_object,
-                        METADATA_ATTRIBUTE_STATUS,
-                        metadata_status_value,
-                        operation="set",
-                    ):
-                        c.print(
-                            f"Metadata with attribute <{METADATA_ATTRIBUTE_STATUS}> and value <{metadata_status_value}> are added in the selected data object."
-                        )
-                    else:
-                        c.print(
-                            "Failed to add or set metadata in iRODS",
-                            style=warning,
-                        )
             except Exception:
                 c.print(
-                    "The path of the data object is not correct. Please provide a correct path. \n Hint: /zone/home/collection/filename",
+                    "Please submit either a single path without quotation marks or a list ['path1', 'path2']",
                     style=warning,
                 )
+                continue
+            for item in list_input:
+                try:
+                    irods_object = session.data_objects.get(item)
+                except Exception:
+                    c.print(
+                        f"The path of the data object <{item}> is not correct. Please provide a correct path. \n "
+                        "Hint: /zone/home/collection/filename \n ",
+                        style=warning,
+                    )
+                    continue
+                data_objects_list.append(irods_object)
+                if from_irods.save_metadata(
+                    irods_object,
+                    METADATA_ATTRIBUTE_STATUS,
+                    metadata_status_value,
+                    operation="set",
+                ):
+                    c.print(
+                        f"Metadata with attribute <{METADATA_ATTRIBUTE_STATUS}> and value <{metadata_status_value}> are added in the selected data object."
+                    )
+                else:
+                    c.print(
+                        "Failed to add or set metadata in iRODS",
+                        style=warning,
+                    )
 
     sleep(0.5)
     # --- Print a table of the selected data --- #

@@ -10,11 +10,14 @@ from datetime import datetime
 def to_list(input: str) -> list:
     """Converts user input to python list given a specific input pattern"""
 
-    input_as_list = ast.literal_eval(input)
+    try:
+        input_as_list = ast.literal_eval(input)
+    except (ValueError, SyntaxError):  # if it is a string
+        return [input]
     if isinstance(input_as_list, list):  # TO DO: change with click
         return input_as_list
     else:
-        return [input]
+        raise Exception("Bad input")
 
 
 def get_controlled_vocabulary_list(name):
@@ -42,7 +45,7 @@ def get_controlled_vocabulary_list(name):
             "description": "Controlled list of subjects for DEMO Dataverse",
         },
         "accessRights": {
-            "values": ["open", "restricted", "embargoed", "closed"],
+            "values": ["restricted", "embargoed", "closed", "open"],
             "description": "Controlled list of access rights for RDR",
         },
         "legitimateOptout": {
@@ -72,7 +75,7 @@ def check_type_class(field):
         case "compound":
             compound_field(field)
         case "controlledVocabulary":
-            get_controlled_vocabulary(field)  # TO DO: Check when we use click
+            get_controlled_vocabulary(field)  # TODO: Check when we use click
 
 
 def get_primitive_field(field):
@@ -93,7 +96,7 @@ def get_controlled_vocabulary(field):
 
     controlled_vocabulary_list = get_controlled_vocabulary_list(field["typeName"])
     value = Prompt.ask(
-        f"Choose one {field['typeName']} from the controlled vocabulary (additional values can be added later):",
+        f"Choose one {field['typeName']} from the controlled vocabulary:",
         choices=controlled_vocabulary_list,
         default=controlled_vocabulary_list[-1],
     )
@@ -112,7 +115,7 @@ def compound_field(field):
                 check_type_class(child_value)
     else:
         for child_value in field["value"].values():
-            check_type_class([child_value])
+            check_type_class(child_value)
 
 
 def get_email(field):
