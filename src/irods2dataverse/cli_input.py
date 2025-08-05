@@ -10,7 +10,9 @@ from datetime import datetime
 def to_list(input: str) -> list:
     """Converts user input to python list given a specific input pattern"""
 
-    input_as_list = ast.literal_eval(input)
+    try: input_as_list = ast.literal_eval(input)
+    except:
+        return [input]
     if isinstance(input_as_list, list):  # TO DO: change with click
         return input_as_list
     else:
