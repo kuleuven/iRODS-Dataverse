@@ -120,10 +120,10 @@
         },
         "dateAvailable": {
           "title": "Date Available",
-          "type": "datetime-local",
+          "type": "text",
           "placeholder": "",
-          "pattern": "",
-          "help": "Input type is datetime-local, leave as empty string if access is open."
+          "pattern": "\\d\\d\\d\\d-\\d\\d-\\d\\d",
+          "help": "Input type is date in the format YYYY-MM-DD."
         },
         "legitimateOptout": {
           "title": "Legitimate Opt-out",
