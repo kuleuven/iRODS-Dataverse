@@ -77,7 +77,7 @@ the metadata to any object of the list. One object suffices.
     {
         "access": {
             "accessRights": "open",
-            "dateAvailable": "",
+            "dateAvailable": "2025-08-06",
             "legitimateOptout": "other"
         },
         "author": [
