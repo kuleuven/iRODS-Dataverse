@@ -4,7 +4,7 @@
             "citation": {
                 "fields": [
                     {
-                        "value": "...Title...",
+                        "value": "Title",
                         "typeClass": "primitive",
                         "multiple": false,
                         "typeName": "title"
@@ -13,13 +13,13 @@
                         "value": [
                             {
                                 "authorName": {
-                                    "value": "...LastName..., ...FirstName...",
+                                    "value": "LastName, FirstName",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "authorName"
                                 },
                                 "authorAffiliation": {
-                                    "value": "...Affiliation...",
+                                    "value": "Affiliation",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "authorAffiliation"
@@ -34,13 +34,13 @@
                         "value": [
                             {
                                 "datasetContactEmail": {
-                                    "value": "...Email...",
+                                    "value": "Email",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "datasetContactEmail"
                                 },
                                 "datasetContactName": {
-                                    "value": "...LastName..., ...FirstName...",
+                                    "value": "LastName, FirstName",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "datasetContactName"
@@ -48,14 +48,14 @@
                             }
                         ],
                         "typeClass": "compound",
-                        "multiple": false,
+                        "multiple": true,
                         "typeName": "datasetContact"
                     },
                     {
                         "value": [
                             {
                                 "dsDescriptionValue": {
-                                    "value": "...Description...",
+                                    "value": "Description",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "dsDescriptionValue"
@@ -70,7 +70,7 @@
                         "value": [
                             {
                                 "keywordValue": {
-                                    "value": "...Keyword...",
+                                    "value": "Keyword",
                                     "typeName": "keywordValue",
                                     "multiple": false,
                                     "typeClass": "primitive"
@@ -82,7 +82,7 @@
                         "typeName": "keyword"
                     },
                     {
-                        "value": "...filetypes...",
+                        "value": "filetypes",
                         "typeClass": "primitive",
                         "multiple": false,
                         "typeName": "technicalFormat"
@@ -96,19 +96,19 @@
                                 "typeName": "accessRights",
                                 "multiple": false,
                                 "typeClass": "controlledVocabulary",
-                                "value": "...open/restricted/embargoed/closed.."
+                                "value": "open/restricted/embargoed/closed"
                             },
                             "dateAvailable": {
                                 "typeName": "dateAvailable",
                                 "multiple": false,
                                 "typeClass": "primitive",
-                                "value": "....."
+                                "value": "YYYY-MM-DD"
                             },
                             "legitimateOptout": {
                                 "typeName": "legitimateOptout",
                                 "multiple": false,
                                 "typeClass": "controlledVocabulary",
-                                "value": "...privacy/intellectual property rights/ethical aspects/aspects of dual use/other..."
+                                "value": "privacy/intellectual property rights/ethical aspects/aspects of dual use/other"
                             }
                         }
                     }

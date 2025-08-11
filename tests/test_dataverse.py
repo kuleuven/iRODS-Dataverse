@@ -5,11 +5,11 @@ from os import path
 from importlib.resources import files
 from irods2dataverse.to_dataverse import (
     get_dataset,
-    validate_md,
+    validate_dataset_metadata_template,
 )
-from irods2dataverse import customClass
+from irods2dataverse import custom_dataverse_classes
 from unittest.mock import patch, Mock
-from irods2dataverse.to_dataverse import deposit_ds
+from irods2dataverse.to_dataverse import deposit_dataset
 
 
 # test validating against the Demo class
@@ -21,7 +21,7 @@ class TestMdValidation(unittest.TestCase):
     def setUp(self):
         self.name = "Demo"
         self.alias = "demo"
-        self.expected_class = customClass.DemoDataset
+        self.expected_class = custom_dataverse_classes.DemoDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
 
@@ -35,15 +35,17 @@ class TestMdValidation(unittest.TestCase):
         """Test that the contents of the metadata template are validated as correct"""
         with self.ds.metadata_template.open("r") as f:
             self.metadict = json.load(f)
-        self.assertTrue(validate_md(self.ds, self.metadict))
-        self.assertTrue(validate_md(self.ds, str(self.ds.metadata_template)))
+        self.assertTrue(validate_dataset_metadata_template(self.ds, self.metadict))
+        self.assertTrue(
+            validate_dataset_metadata_template(self.ds, str(self.ds.metadata_template))
+        )
 
     def test_failing_validation(self):
         """Test different kinds of invalid inputs"""
-        self.assertFalse(validate_md(self.ds, 5))
-        self.assertFalse(validate_md(self.ds, {"a": 1, "b": 2}))
+        self.assertFalse(validate_dataset_metadata_template(self.ds, 5))
+        self.assertFalse(validate_dataset_metadata_template(self.ds, {"a": 1, "b": 2}))
         with self.assertRaises(FileNotFoundError):
-            validate_md(self.ds, "This is an invalid string")
+            validate_dataset_metadata_template(self.ds, "This is an invalid string")
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -56,7 +58,7 @@ class TestMdValidationRDR(TestMdValidation):
     def setUp(self):
         self.name = "RDR"
         self.alias = "rdr"
-        self.expected_class = customClass.RDRDataset
+        self.expected_class = custom_dataverse_classes.RDRDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
 
@@ -65,7 +67,7 @@ class TestMdValidationRDRPilot(TestMdValidation):
     def setUp(self):
         self.name = "RDR-pilot"
         self.alias = "rdr"
-        self.expected_class = customClass.RDRPilotDataset
+        self.expected_class = custom_dataverse_classes.RDRPilotDataset
         self.test_dir = tempfile.mkdtemp(self.name)
         self.ds = get_dataset(self.name)
 
@@ -79,13 +81,13 @@ class TestAPI(unittest.TestCase):
             "data": {"persistentId": "someid", "id": "anotherid"},
         }
         ds = get_dataset("Demo")
-        dsStatus, dsPID, dsID = deposit_ds(api, ds)
+        dsStatus, dsPID, dsID = deposit_dataset(api, ds)
         self.assertEqual(dsStatus, 200)
         self.assertEqual(dsPID, "someid")
         self.assertEqual(dsID, "anotherid")
 
     # md = to_dataverse.deposit_df(api, dsPID, item.name, trg_path)
 
-    # fileURL, storageID = direct_upload.get_du_url(
+    # fileURL, storageID = direct_upload.get_direct_upload_url(
     #             ds.baseURL, dsPID, objSize, header_key
     #         )
