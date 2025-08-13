@@ -9,7 +9,6 @@ from irods2dataverse.to_dataverse import (
 )
 from irods2dataverse import custom_dataverse_classes
 from unittest.mock import patch, Mock
-# from irods2dataverse.to_dataverse import deposit_datafile
 from pyDataverse.api import NativeApi
 
 
@@ -77,7 +76,7 @@ class TestAPI(unittest.TestCase):
 
     @patch("irods2dataverse.to_dataverse.NativeApi")
     def test_deposit(self, api):
-        api.create_dataset.git.json.return_value = {
+        api.create_dataset.return_value.json.return_value = {
             "status": 200,
             "data": {"persistentId": "someid", "id": "anotherid"},
         }
