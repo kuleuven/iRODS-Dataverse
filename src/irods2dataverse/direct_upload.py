@@ -1,160 +1,82 @@
+"""Direct upload from iRODS to Dataverse S3"""
+
+from typing import Tuple
 import requests
+from irods.data_object import iRODSDataObject
+from .from_irods import get_object_info
 
 
-def create_headers(token):
-    """Create information to pass on the header for direct upload
+def get_direct_upload_url(
+    base_url: str, dataset_doi: str, datafile_size: int, header_key: dict
+) -> Tuple[str, str]:
+    """GET request for direct upload to obtain the Dataverse file url and storage ID"""
 
-    Parameters
-    ----------
-    token: str
-      the Dataverse token given by the user
-
-    Returns
-    -------
-    header_key: dict
-      the token used in direct upload step-1 and step-3
-    header_ct: dict
-      the content type for data transmission used in direct upload step-2
-    """
-
-    # create headers with Dataverse token: used in step-1 and step-3
-    header_key = {
-        "X-Dataverse-key": token,
-    }
-    # create headers with content type for data transmission: used in step-2
-    header_ct = {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-
-    return header_key, header_ct
-
-
-def get_du_url(BASE_URL, dv_ds_DOI, df_size, header_key):
-    """GET request for direct upload
-
-    Parameters
-    ----------
-    BASE_URL: str
-      class attribute baseURL
-    dv_ds_DOI: str
-      Dataset Persistent Identifier
-    objSize: str
-      size of iRODS object
-    header_key: dict
-      the token used in direct upload
-
-    Returns
-    -------
-    response1: json
-      json response of GET request for direct upload
-    fileURL: str
-      Dataverse URL for the iRODS object meant for publication
-    strorageID: str
-      Dataverse storage identified
-    """
+    api_url = f"{base_url}/api/datasets/:persistentId/"
+    upload_url_parameters = (
+        f"uploadurls?persistentId={dataset_doi}&size={datafile_size}"
+    )
 
     # request file direct upload
     response = requests.get(
-        f"{BASE_URL}/api/datasets/:persistentId/uploadurls?persistentId={dv_ds_DOI}&size={df_size}",
+        f"{api_url}{upload_url_parameters}",
         headers=header_key,
+        timeout=None,
     )
-    # # verify status
-    # print(str(response1))  # <Response [200]> ==> for user script
     if response.status_code != 200:
         raise ConnectionError("Something went wrong", response)
-    # save the url
+
+    # get information from response
     data = response.json()["data"]
-    fileURL = data["url"]
-    strorageID = data["storageIdentifier"]
+    file_url = data["url"]
+    storage_id = data["storageIdentifier"]
 
-    return fileURL, strorageID
+    return file_url, storage_id
 
 
-def put_in_s3(obj, fileURL, headers_ct):
-    """PUT request for direct upload
+def put_in_s3(obj: iRODSDataObject, file_url: str) -> requests.Response:
+    """PUT request for direct upload of an iRODS data object on a pre-specified Dataverse URL"""
 
-    Parameters
-    ----------
-    obj: iRODSDataObject
-      the object meant for publication
-    fileURL: str
-      Dataverse URL for the iRODS object meant for publication
-    headers_ct: dict
-      the content type for data transmission used in direct upload step-2
-
-    Returns
-    -------
-    response2: json
-      json response of PUT request for direct upload
-    """
+    # create headers with content type for data transmission: used in step-2
+    header_content_type = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
 
     # open the iRODS object
     with obj.open("r") as data:
         # PUT the file in S3
         response = requests.put(
-            fileURL,
-            headers=headers_ct,
-            data=data,
+            file_url, headers=header_content_type, data=data, timeout=None
         )
-    # # verify status
-    # print(str(response2))  # <Response [200]>  ==> for user script
 
     return response
 
 
-def create_du_md(storageID, objName, objMimetype, objChecksum):
-    """Create direct upload metadata dictionary
+def create_direct_upload_metadata(
+    storage_id: str,
+    item: iRODSDataObject,
+) -> dict:
+    """Create metadata dictionary for direct upload of an iRODS object"""
 
-    Parameters
-    ----------
-    response1: json
-      json response of GET request for direct upload
-    objName: str
-      the name of the object to be stored
-    objMimetype: str
-      mimetype of iRODS object
-    objSize: str
-      size of iRODS object
+    object_checksum, object_mimetype, object_directory = get_object_info(item)
 
-    Returns
-    -------
-    obj_md_dict: dict
-      the metadata dictionary for the file meant for publication
-    """
-
-    obj_md_dict = {
-        "description": "This is the description of the directly uploaded file.",  # TO DO: get from iRODS metadata
-        "directoryLabel": "data/subdir1",  # TO DO: get from iRODS, based on the path of the file in a dataset
+    file_metadata = {
+        "description": "Description of directly uploaded file.",  # TO DO: get from iRODS metadata
+        "directoryLabel": object_directory,
         "categories": ["Data"],
         "restrict": "false",
-        "storageIdentifier": storageID,
-        "fileName": objName,
-        "mimeType": objMimetype,
-        "checksum": {"@type": "SHA-256", "@value": objChecksum},
+        "storageIdentifier": storage_id,
+        "fileName": item.name,
+        "mimeType": object_mimetype,
+        "checksum": {"@type": "SHA-256", "@value": object_checksum},
     }
 
-    return obj_md_dict
+    return file_metadata
 
 
-def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
-    """POST request for direct upload
-
-    Parameters
-    ----------
-    obj_md_dict: dict
-      the metadata dictionary for the file meant for publication
-    BASE_URL: str
-      class attribute baseURL
-    dv_ds_DOI: str
-      Dataset Persistent Identifier
-    header_key: dict
-      the token used in direct upload
-
-    Returns
-    -------
-    response3:  json
-      json response of POST request for direct upload
-    """
+def post_to_dataset(
+    obj_md_dict: dict, base_url: str, dataset_doi: str, header_key: dict
+) -> requests.Response:
+    """POST request for direct upload to return json string"""
 
     # create a dictionary for jsonData
     files = {
@@ -162,11 +84,10 @@ def post_to_ds(obj_md_dict, BASE_URL, dv_ds_DOI, header_key):
     }
     # send the POST request
     response = requests.post(
-        f"{BASE_URL}/api/datasets/:persistentId/add?persistentId={dv_ds_DOI}",
+        f"{base_url}/api/datasets/:persistentId/add?persistentId={dataset_doi}",
         headers=header_key,
         files=files,
+        timeout=None,
     )
-    # # verify status
-    # print(str(response3))  # <Response [200]> ==> for user script
 
     return response

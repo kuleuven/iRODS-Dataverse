@@ -8,12 +8,13 @@ name = "irods2dataverse"
 description = "Tag and push datasets from iRODS to a dataverse installation"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "0.0.4"
+version = "0.0.5"
 license = {file = "LICENSE"}
 authors = [
     { name = "Danai Kafetzaki", email = "danai.kafetzaki@kuleuven.be" },
     { name = "Joachim Bovin", email = "joachim.bovin@kuleuven.be" },
     { name = "Mariana Montes", email = "mariana.montes@kuleuven.be" },
+    { name = "Paul Borgermans", email = "paul.borgermans@kuleuven.be" },
 ]
 
 [project.urls]

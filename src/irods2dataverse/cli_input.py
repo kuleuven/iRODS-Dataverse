@@ -1,50 +1,27 @@
+"""Reads CLI input with UTF-8 encoding and returns filled-in metadata template"""
+
 import json
 import ast
 from rich.prompt import Prompt
-from pathlib import Path
 import re
 from datetime import datetime
 
 
-def is_list(input):
-    """Checks if user input represents a python list.
+def to_list(input: str) -> list:
+    """Converts user input to python list given a specific input pattern"""
 
-    Parameters
-    ----------
-    input (str): User input typed in CLI
-
-    Returns
-    -------
-    bool: Returning value
-    """
     try:
-        return isinstance(ast.literal_eval(input), list)
-    except SyntaxError:
-        return False
-
-
-def to_list(input):
-    """Converts user input to python list.
-
-    Parameters
-    ----------
-    input (str): User input typed in CLI
-
-    Returns
-    -------
-    list: Returning list
-    """
-
-    if is_list(input):
-        return ast.literal_eval(input)
-    else:
+        input_as_list = ast.literal_eval(input)
+    except (ValueError, SyntaxError):  # if it is a string
         return [input]
+    if isinstance(input_as_list, list):  # TO DO: change with click
+        return input_as_list
+    else:
+        raise Exception("Bad input")
 
 
-# Reads contents with UTF-8 encoding and returns str.
-
-
-def get_controlled_vocabulary(name):
+def get_controlled_vocabulary_list(name):
+    """Hard-coded dictionary with necessary controlled vocabularies."""
 
     controlled_vocabularies = {
         "subject": {
@@ -68,7 +45,7 @@ def get_controlled_vocabulary(name):
             "description": "Controlled list of subjects for DEMO Dataverse",
         },
         "accessRights": {
-            "values": ["open", "restricted", "embargoed", "closed"],
+            "values": ["restricted", "embargoed", "closed", "open"],
             "description": "Controlled list of access rights for RDR",
         },
         "legitimateOptout": {
@@ -83,33 +60,27 @@ def get_controlled_vocabulary(name):
         },
     }
 
-    return controlled_vocabularies[name]["values"]
+    return controlled_vocabularies[name][
+        "values"
+    ]  # TODO move to class definition and make a method
 
 
-def create_tmp_folder():
-    directory_name = "tmp"
-    root_path = Path(__file__).parent
-    new_directory_path = root_path / directory_name
+def check_type_class(field):
+    """Checks typeClass (primitive, compound, controlled vocabulary)
+    for each field and redirects to appropriate method."""
 
-    try:
-        new_directory_path.mkdir(exist_ok=True)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-    return new_directory_path.resolve()
-
-
-def check_typeClass(field):
     match field["typeClass"]:
         case "primitive":
-            primitive_field(field)
+            get_primitive_field(field)
         case "compound":
             compound_field(field)
         case "controlledVocabulary":
-            controlled_vocabulary(field)
+            get_controlled_vocabulary(field)  # TODO: Check when we use click
 
 
-def primitive_field(field):
+def get_primitive_field(field):
+    """Modify field value for a primitive field based on interactive user input"""
+
     if re.match(r".*email.*", field["typeName"], re.IGNORECASE):
         field["value"] = get_email(field)
     elif re.match(r".*date.*", field["typeName"], re.IGNORECASE):
@@ -120,10 +91,12 @@ def primitive_field(field):
         )
 
 
-def controlled_vocabulary(field):
-    controlled_vocabulary_list = get_controlled_vocabulary(field["typeName"])
+def get_controlled_vocabulary(field):
+    """Gets value for a controlled vocabulary from user"""
+
+    controlled_vocabulary_list = get_controlled_vocabulary_list(field["typeName"])
     value = Prompt.ask(
-        f"Choose one {field['typeName']} from the controlled vocabulary (additional values can be added later):",
+        f"Choose one {field['typeName']} from the controlled vocabulary:",
         choices=controlled_vocabulary_list,
         default=controlled_vocabulary_list[-1],
     )
@@ -134,19 +107,20 @@ def controlled_vocabulary(field):
 
 
 def compound_field(field):
+    """Iterate through a compound field and check child fields recursively"""
+
     if field["multiple"]:
-        for i in range(len(field["value"])):
-            for child_value in field["value"][i].values():
-                # print(child_value)
-                check_typeClass(child_value)  # check child fields recursively
+        for instance in field["value"]:
+            for child_value in instance.values():
+                check_type_class(child_value)
     else:
-        for child_value in field["value"]:
-            check_typeClass(
-                field["value"][child_value]
-            )  # check child fields recursively
+        for child_value in field["value"].values():
+            check_type_class(child_value)
 
 
 def get_email(field):
+    """Get email in correct format string@string.string"""
+
     email = None
     while not re.match(r"[^@]+@[^@]+\.[^@]+", str(email)):
         email = Prompt.ask(
@@ -156,6 +130,8 @@ def get_email(field):
 
 
 def get_date(field):
+    """Get date in correct format YYYY-MM-DD"""
+
     date = None
     while not re.match(r"\d\d\d\d-\d\d-\d\d", str(date)):
         date = Prompt.ask(
@@ -166,19 +142,18 @@ def get_date(field):
 
 
 def fill_in_md_template(path_to_template):
+    """Allow user to fill in the template and return as dictionary"""
 
     with open(path_to_template, "r") as f:
         dataset = json.load(f)
 
-    blocks = dataset["datasetVersion"]["metadataBlocks"]
-    block_list = [k for k in blocks]
+    blocks = dataset["datasetVersion"][
+        "metadataBlocks"
+    ]  # get the blocks from the dataset
 
-    for block in block_list:
+    for block in blocks:
         for key, value in blocks[block].items():
             if key == "fields":
                 for field in value:
-                    check_typeClass(field)
-        file_path = create_tmp_folder()
-        with open(file_path / "tmp_file.json", "w") as f:
-            json.dump(dataset, f)
-        return str(file_path / "tmp_file.json")
+                    check_type_class(field)
+    return dataset

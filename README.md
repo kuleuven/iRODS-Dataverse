@@ -26,7 +26,7 @@ The final submission of the dataset takes place in the Dataverse installation it
 After installing the package in the virtual environment start the process:
 
 ```sh
-python -m irods2dataverse.userScript
+python -m irods2dataverse
 ```
 
 This will trigger an interactive terminal that will take you through the following steps:
@@ -77,7 +77,7 @@ the metadata to any object of the list. One object suffices.
     {
         "access": {
             "accessRights": "open",
-            "dateAvailable": "",
+            "dateAvailable": "2025-08-06",
             "legitimateOptout": "other"
         },
         "author": [

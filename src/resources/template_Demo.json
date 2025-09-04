@@ -4,7 +4,7 @@
             "citation": {
                 "fields": [
                     {
-                        "value": "...Title...",
+                        "value": "Title",
                         "typeClass": "primitive",
                         "multiple": false,
                         "typeName": "title"
@@ -13,13 +13,13 @@
                         "value": [
                             {
                                 "authorName": {
-                                    "value": "...LastName..., ...FirstName...",
+                                    "value": "LastName, FirstName",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "authorName"
                                 },
                                 "authorAffiliation": {
-                                    "value": "...Affiliation...",
+                                    "value": "Affiliation",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "authorAffiliation"
@@ -34,13 +34,13 @@
                         "value": [
                             {
                                 "datasetContactEmail": {
-                                    "value": "...Email...",
+                                    "value": "Email",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "datasetContactEmail"
                                 },
                                 "datasetContactName": {
-                                    "value": "...LastName..., ...FirstName...",
+                                    "value": "LastName, FirstName",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "datasetContactName"
@@ -55,7 +55,7 @@
                         "value": [
                             {
                                 "dsDescriptionValue": {
-                                    "value": "...Description...",
+                                    "value": "Description",
                                     "typeClass": "primitive",
                                     "multiple": false,
                                     "typeName": "dsDescriptionValue"
@@ -68,7 +68,7 @@
                     },
                     {
                         "value": [
-                            "...Agricultural Sciences/Arts and Humanities/Astronomy and Astrophysics/Business and Management/Chemistry/Computer and Information Science/Earth and Environmental Sciences/Engineering/Law/Mathematical Sciences/Medicine/ Health and Life Sciences/Physics/Social Sciences/Other/Demo Only..."
+                            "Agricultural Sciences/Arts and Humanities/Astronomy and Astrophysics/Business and Management/Chemistry/Computer and Information Science/Earth and Environmental Sciences/Engineering/Law/Mathematical Sciences/Medicine/ Health and Life Sciences/Physics/Social Sciences/Other/Demo Only"
                         ],
                         "typeClass": "controlledVocabulary",
                         "multiple": true,
